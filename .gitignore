@@ -1,18 +1,51 @@
-*/config/development
-*/logs/log-*.php
-!*/logs/index.html
-*/cache/*
-!system/cache/*
-!*/cache/index.html
-!*/cache/.htaccess
-
-user_guide_src/build/*
-user_guide_src/cilexer/build/*
-user_guide_src/cilexer/dist/*
-user_guide_src/cilexer/pycilexer.egg-info/*
-
-#codeigniter 3
-application/logs/*
-!application/logs/index.html
-!application/logs/.htaccess
+# ===================================
+# IGNORE OBLIGATOIRE POUR CI4
+# ===================================
+/system/
 /vendor/
+
+# Fichiers de config d'environnement (Boot)
+app/Config/Boot/development.php
+app/Config/Boot/production.php
+app/Config/Boot/testing.php
+
+# Logs
+writable/logs/log-*.php
+!writable/logs/index.html
+
+# Cache
+writable/cache/*
+!writable/cache/index.html
+!writable/cache/.htaccess
+
+# Sessions / Uploads / Debugbar
+writable/session/*
+!writable/session/index.html
+writable/uploads/*
+!writable/uploads/index.html
+writable/debugbar/*
+!writable/debugbar/index.html
+
+# Documentation
+user_guide_src/
+
+# ===================================
+# CLASSIQUES
+# ===================================
+
+# Dépendances
+composer.lock
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Temporaires
+*.tmp
+*.log
+*.bak
+*.swp
+*~
