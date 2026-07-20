@@ -49,6 +49,8 @@ class AdminController extends BaseController
         $data = [
             'prefixe'    => trim($this->request->getPost('prefixe')),
             'description' => trim($this->request->getPost('description')),
+            'est_autre_operateur' => (int) $this->request->getPost('est_autre_operateur'),
+            'commission_pourcentage' => (float) ($this->request->getPost('commission_pourcentage') ?: 0),
         ];
 
         try {
@@ -218,8 +220,62 @@ class AdminController extends BaseController
 
     public function gains()
     {
-        $data['gains'] = $this->gainModel->getGainsWithType();
-        $data['title'] = 'Situation des gains';
+        $periodeDebut = date('Y-m-d 00:00:00', strtotime('first day of this month'));
+        $periodeFin   = date('Y-m-d 23:59:59', strtotime('last day of this month'));
+
+        $retraitId = $this->typeModel->where('code', 'RET')->first()['id'] ?? 0;
+        $transfertId = $this->typeModel->where('code', 'TRANS')->first()['id'] ?? 0;
+
+        $gainsOperateur = [];
+        if ($retraitId) {
+            $gainsOperateur[] = [
+                'type_nom' => 'Retrait',
+                'montant_total_frais' => $this->transactionModel->getGainsByType($retraitId, $periodeDebut, $periodeFin, 0),
+                'periode_debut' => $periodeDebut,
+                'periode_fin' => $periodeFin,
+            ];
+        }
+        if ($transfertId) {
+            $gainsOperateur[] = [
+                'type_nom' => 'Transfert',
+                'montant_total_frais' => $this->transactionModel->getGainsByType($transfertId, $periodeDebut, $periodeFin, 0),
+                'periode_debut' => $periodeDebut,
+                'periode_fin' => $periodeFin,
+            ];
+        }
+
+        $gainsAutres = [];
+        if ($retraitId) {
+            $gainsAutres[] = [
+                'type_nom' => 'Retrait',
+                'montant_total_frais' => $this->transactionModel->getGainsByType($retraitId, $periodeDebut, $periodeFin, 1),
+                'periode_debut' => $periodeDebut,
+                'periode_fin' => $periodeFin,
+            ];
+        }
+        if ($transfertId) {
+            $gainsAutres[] = [
+                'type_nom' => 'Transfert',
+                'montant_total_frais' => $this->transactionModel->getGainsByType($transfertId, $periodeDebut, $periodeFin, 1),
+                'periode_debut' => $periodeDebut,
+                'periode_fin' => $periodeFin,
+            ];
+        }
+
+        $montantsOperateurs = $this->transactionModel->getMontantsParOperateur($periodeDebut, $periodeFin);
+        foreach ($montantsOperateurs as &$m) {
+            $commission = ($m['total_montant'] ?? 0) * ($m['commission_pourcentage'] / 100);
+            $m['commission'] = $commission;
+            $m['montant_net'] = ($m['total_montant'] ?? 0) - $commission;
+        }
+
+        $data = [
+            'gains_operateur' => $gainsOperateur,
+            'gains_autres' => $gainsAutres,
+            'montants_operateurs' => $montantsOperateurs,
+            'title' => 'Situation des gains - V2',
+        ];
+
         return view('admin/gains', $data);
     }
 

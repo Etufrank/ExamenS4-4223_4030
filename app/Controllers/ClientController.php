@@ -7,6 +7,7 @@ use App\Models\TransactionModel;
 use App\Models\TypeOperationModel;
 use App\Models\BaremeFraisModel;
 use App\Models\UserModel;
+use App\Models\PrefixeOperateurModel;
 
 class ClientController extends BaseController
 {
@@ -15,6 +16,7 @@ class ClientController extends BaseController
     protected $typeModel;
     protected $baremeModel;
     protected $userModel;
+    protected $prefixeModel;
 
     public function __construct()
     {
@@ -23,24 +25,17 @@ class ClientController extends BaseController
         $this->typeModel = new TypeOperationModel();
         $this->baremeModel = new BaremeFraisModel();
         $this->userModel = new UserModel();
+        $this->prefixeModel = new PrefixeOperateurModel();
     }
 
     public function login()
-{
-    // Si déjà connecté, rediriger vers dashboard
-    if (session()->get('isLoggedIn')) {
-        return redirect()->to('/client/dashboard');
+    {
+        if (session()->get('isLoggedIn')) {
+            return redirect()->to('/client/dashboard');
+        }
+        $data['title'] = 'Connexion client';
+        return view('client/login', $data);
     }
-
-    // Éviter une boucle si on est déjà sur login (sécurité)
-    $currentUri = current_url();
-    if (strpos($currentUri, 'client/login') !== false) {
-        // On affiche simplement la vue
-    }
-
-    $data['title'] = 'Connexion client';
-    return view('client/login', $data);
-}
 
     public function doLogin()
     {
@@ -208,29 +203,51 @@ class ClientController extends BaseController
 
     public function transfert()
     {
-        $data['title'] = 'Faire un transfert';
+        $data['title'] = 'Faire un transfert multiple';
         return view('client/transfert', $data);
     }
 
     public function doTransfert()
     {
         $clientId = session()->get('client_id');
-        $montant = (float) $this->request->getPost('montant');
-        $destinataire = $this->request->getPost('destinataire');
+        $montantTotal = (float) $this->request->getPost('montant');
+        $destinatairesRaw = $this->request->getPost('destinataires');
+        $fraisInclus = (int) $this->request->getPost('frais_inclus') === 1;
 
-        if (!$montant || $montant <= 0) {
-            return redirect()->back()->withInput()->with('error', 'Montant invalide.');
+        if (!$montantTotal || $montantTotal <= 0) {
+            return redirect()->back()->withInput()->with('error', 'Montant total invalide.');
         }
-        if (!$destinataire) {
-            return redirect()->back()->withInput()->with('error', 'Destinataire requis.');
+        if (!$destinatairesRaw) {
+            return redirect()->back()->withInput()->with('error', 'Veuillez entrer au moins un destinataire.');
+        }
+
+        $destinataires = array_filter(array_map('trim', explode("\n", $destinatairesRaw)));
+        if (empty($destinataires)) {
+            return redirect()->back()->withInput()->with('error', 'Aucun destinataire valide.');
         }
 
         $client = $this->clientModel->find($clientId);
         if (!$client) {
             return redirect()->to('/client/login')->with('error', 'Client introuvable.');
         }
-        if ($client['numero_telephone'] === $destinataire) {
-            return redirect()->back()->withInput()->with('error', 'Transfert vers soi-même interdit.');
+
+        $destinatairesClients = [];
+        foreach ($destinataires as $dest) {
+            if ($dest === $client['numero_telephone']) {
+                return redirect()->back()->withInput()->with('error', 'Vous ne pouvez pas vous transférer à vous-même.');
+            }
+            $destClient = $this->clientModel->findByNumero($dest);
+            if (!$destClient) {
+                return redirect()->back()->withInput()->with('error', 'Destinataire introuvable : ' . $dest);
+            }
+            $destinatairesClients[] = $destClient;
+        }
+
+        $nbDestinataires = count($destinatairesClients);
+        $montantParDestinataire = $montantTotal / $nbDestinataires;
+
+        if ($montantParDestinataire < 100) {
+            return redirect()->back()->withInput()->with('error', 'Le montant par destinataire est inférieur à 100 Ar.');
         }
 
         $type = $this->typeModel->getTypeByCode('TRANS');
@@ -238,67 +255,66 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Type "transfert" introuvable.');
         }
 
-        $destinataireClient = $this->clientModel->findByNumero($destinataire);
-        if (!$destinataireClient) {
-            return redirect()->back()->withInput()->with('error', 'Destinataire introuvable.');
-        }
+        $premierPrefixe = substr($destinatairesClients[0]['numero_telephone'], 0, 3);
+        $prefixeInfo = $this->prefixeModel->where('prefixe', $premierPrefixe)->first();
+        $estInterOperateur = ($prefixeInfo && $prefixeInfo['est_autre_operateur'] == 1) ? 1 : 0;
 
-        $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montant);
+        $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montantParDestinataire);
         if (!$bareme) {
-            return redirect()->back()->withInput()->with('error', 'Aucun barème pour ce montant.');
+            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant.');
         }
 
-        $frais = $bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100);
-        $montantTotal = $montant + $frais;
+        $fraisParDestinataire = $bareme['frais_fixe'] + ($montantParDestinataire * $bareme['frais_pourcentage'] / 100);
+        $montantEnvoye = $fraisInclus ? $montantParDestinataire - $fraisParDestinataire : $montantParDestinataire;
+        $montantDebite = $fraisInclus ? $montantParDestinataire : $montantParDestinataire + $fraisParDestinataire;
 
-        if ($client['solde'] < $montantTotal) {
-            return redirect()->back()->withInput()->with('error', 'Solde insuffisant.');
+        $totalADebiter = $montantDebite * $nbDestinataires;
+        if ($client['solde'] < $totalADebiter) {
+            return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($totalADebiter, 2) . ' Ar');
         }
 
-        $dataExp = [
-            'reference'          => $this->transactionModel->generateReference(),
-            'type_operation_id'  => $type['id'],
-            'client_id'          => $clientId,
-            'montant'            => $montant,
-            'frais_appliques'    => $frais,
-            'montant_total'      => $montantTotal,
-            'sens'               => 'debit',
-            'statut'             => 'effectuee',
-            'description'        => 'Transfert à ' . $destinataire,
-        ];
+        foreach ($destinatairesClients as $index => $destClient) {
+            $referenceExp = $this->transactionModel->generateReference();
+            $this->transactionModel->insert([
+                'reference' => $referenceExp,
+                'type_operation_id' => $type['id'],
+                'client_id' => $clientId,
+                'montant' => $montantParDestinataire,
+                'frais_appliques' => $fraisParDestinataire,
+                'frais_inclus' => $fraisInclus ? 1 : 0,
+                'montant_total' => $montantDebite,
+                'sens' => 'debit',
+                'statut' => 'effectuee',
+                'description' => 'Transfert multiple ' . ($index + 1) . '/' . $nbDestinataires . ' vers ' . $destClient['numero_telephone'],
+                'destinataire_original' => $destClient['numero_telephone'],
+                'est_inter_operateur' => $estInterOperateur,
+            ]);
 
-        $dataDest = [
-            'reference'          => $this->transactionModel->generateReference(),
-            'type_operation_id'  => $type['id'],
-            'client_id'          => $destinataireClient['id'],
-            'montant'            => $montant,
-            'frais_appliques'    => 0,
-            'montant_total'      => $montant,
-            'sens'               => 'credit',
-            'statut'             => 'effectuee',
-            'description'        => 'Réception de transfert de ' . $client['numero_telephone'],
-        ];
+            $referenceDest = $this->transactionModel->generateReference();
+            $this->transactionModel->insert([
+                'reference' => $referenceDest,
+                'type_operation_id' => $type['id'],
+                'client_id' => $destClient['id'],
+                'montant' => $montantEnvoye,
+                'frais_appliques' => 0,
+                'frais_inclus' => 0,
+                'montant_total' => $montantEnvoye,
+                'sens' => 'credit',
+                'statut' => 'effectuee',
+                'description' => 'Réception de transfert multiple de ' . $client['numero_telephone'],
+                'est_inter_operateur' => 0,
+            ]);
 
-        try {
-            if ($this->transactionModel->insert($dataExp) === false) {
-                return redirect()->back()->withInput()->with('error', 'Erreur transfert (expéditeur).');
-            }
-            if ($this->transactionModel->insert($dataDest) === false) {
-                return redirect()->back()->withInput()->with('error', 'Erreur transfert (destinataire).');
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Erreur transfert : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+            $this->clientModel->update($destClient['id'], [
+                'solde' => $destClient['solde'] + $montantEnvoye
+            ]);
         }
 
         $this->clientModel->update($clientId, [
-            'solde' => $client['solde'] - $montantTotal
-        ]);
-        $this->clientModel->update($destinataireClient['id'], [
-            'solde' => $destinataireClient['solde'] + $montant
+            'solde' => $client['solde'] - $totalADebiter
         ]);
 
-        return redirect()->to('/client/dashboard')->with('success', 'Transfert effectué !');
+        return redirect()->to('/client/dashboard')->with('success', 'Transfert multiple effectué avec succès ! ' . $nbDestinataires . ' destinataires servis. Montant total: ' . number_format($montantTotal, 2) . ' Ar');
     }
 
     public function historique()
