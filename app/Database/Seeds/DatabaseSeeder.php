@@ -8,9 +8,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // ============================================================
-        // 1. ADMINISTRATEURS
-        // ============================================================
         $admins = [
             [
                 'username' => 'frank',
@@ -41,9 +38,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ============================================================
-        // 2. CLIENTS DE TEST
-        // ============================================================
         $clients = [
             ['0331234567', 'Jean', 'Dupont', 50000],
             ['0349876543', 'Marie', 'Martin', 30000],
@@ -74,9 +68,6 @@ class DatabaseSeeder extends Seeder
             $clientIds[] = $this->db->insertID();
         }
 
-        // ============================================================
-        // 3. TYPES D'OPÉRATIONS
-        // ============================================================
         $types = [
             ['nom' => 'dépôt', 'code' => 'DEP', 'description' => 'Dépôt sur compte'],
             ['nom' => 'retrait', 'code' => 'RET', 'description' => 'Retrait depuis compte'],
@@ -86,9 +77,6 @@ class DatabaseSeeder extends Seeder
             $this->db->table('types_operations')->insert($t);
         }
 
-        // ============================================================
-        // 4. BARÈMES DE FRAIS
-        // ============================================================
         $baremesRetrait = [
             [100, 1000, 50],
             [1001, 5000, 50],
@@ -102,7 +90,6 @@ class DatabaseSeeder extends Seeder
             [1000001, 2000000, 3000],
         ];
 
-        // Retrait (type_operation_id = 2)
         foreach ($baremesRetrait as $b) {
             $this->db->table('baremes_frais')->insert([
                 'type_operation_id' => 2,
@@ -115,7 +102,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Transfert (type_operation_id = 3) – copie identique
         foreach ($baremesRetrait as $b) {
             $this->db->table('baremes_frais')->insert([
                 'type_operation_id' => 3,
@@ -128,7 +114,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Dépôt (type_operation_id = 1) – frais à 0
         $this->db->table('baremes_frais')->insert([
             'type_operation_id' => 1,
             'montant_min'       => 0,
@@ -139,11 +124,7 @@ class DatabaseSeeder extends Seeder
             'updated_at'        => date('Y-m-d H:i:s'),
         ]);
 
-        // ============================================================
-        // 5. TRANSACTIONS DE TEST
-        // ============================================================
         foreach ($clientIds as $cid) {
-            // Dépôt
             $montant = rand(1000, 20000);
             $this->db->table('transactions')->insert([
                 'reference'          => 'TXN-' . date('Ymd') . '-' . uniqid(),
@@ -158,7 +139,6 @@ class DatabaseSeeder extends Seeder
                 'description'        => 'Dépôt test de ' . number_format($montant, 2) . ' Ar',
             ]);
 
-            // Retrait
             $montant = rand(5000, 30000);
             $bareme = $this->getBareme(2, $montant);
             if ($bareme) {
@@ -178,7 +158,6 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
 
-            // Transfert (expéditeur vers le premier client)
             if ($cid !== $clientIds[0]) {
                 $montant = rand(2000, 15000);
                 $bareme = $this->getBareme(3, $montant);
@@ -215,9 +194,6 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // ============================================================
-        // 6. GAINS (SITUATION DES FRAIS)
-        // ============================================================
         $periodeDebut = date('Y-m-d 00:00:00', strtotime('first day of this month'));
         $periodeFin   = date('Y-m-d 23:59:59', strtotime('last day of this month'));
 

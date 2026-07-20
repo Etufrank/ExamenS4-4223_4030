@@ -2,12 +2,12 @@
 
 namespace App\Controllers;
 
-use App\Models\PrefixeOperateurModel;
-use App\Models\TypeOperationModel;
-use App\Models\BaremeFraisModel;
-use App\Models\ClientModel;
-use App\Models\TransactionModel;
-use App\Models\GainModel;
+use App\Models\PrefixeOperateur;
+use App\Models\TypeOperation;
+use App\Models\BaremeFrais;
+use App\Models\Client;
+use App\Models\Transaction;
+use App\Models\Gain;
 
 class Admin extends BaseController
 {
@@ -20,15 +20,14 @@ class Admin extends BaseController
 
     public function __construct()
     {
-        $this->prefixeModel = new PrefixeOperateurModel();
-        $this->typeModel = new TypeOperationModel();
-        $this->baremeModel = new BaremeFraisModel();
-        $this->clientModel = new ClientModel();
-        $this->transactionModel = new TransactionModel();
-        $this->gainModel = new GainModel();
+        $this->prefixeModel = new PrefixeOperateur();
+        $this->typeModel = new TypeOperation();
+        $this->baremeModel = new BaremeFrais();
+        $this->clientModel = new Client();
+        $this->transactionModel = new Transaction();
+        $this->gainModel = new Gain();
     }
 
-    
     public function prefixes()
     {
         $data['prefixes'] = $this->prefixeModel->findAll();
@@ -60,7 +59,6 @@ class Admin extends BaseController
         return redirect()->to('/admin/prefixes')->with('success', 'Préfixe supprimé');
     }
 
-    
     public function typesOperations()
     {
         $data['types'] = $this->typeModel->findAll();
@@ -94,7 +92,6 @@ class Admin extends BaseController
         return redirect()->to('/admin/types-operations')->with('success', 'Type supprimé');
     }
 
-    
     public function baremes()
     {
         $data['baremes'] = $this->baremeModel->getBaremesWithType();
@@ -135,11 +132,9 @@ class Admin extends BaseController
             return redirect()->to('/admin/baremes')->with('error', 'Barème introuvable');
         }
 
-        $data = [
-            'bareme' => $bareme,
-            'types' => $this->typeModel->findAll(),
-            'title' => 'Modifier un barème'
-        ];
+        $data['bareme'] = $bareme;
+        $data['types'] = $this->typeModel->findAll();
+        $data['title'] = 'Modifier un barème';
         return view('admin/bareme_edit', $data);
     }
 
@@ -172,14 +167,12 @@ class Admin extends BaseController
         return redirect()->to('/admin/baremes')->with('success', 'Barème supprimé');
     }
 
-
     public function gains()
     {
         $data['gains'] = $this->gainModel->getGainsWithType();
         $data['title'] = 'Situation des gains';
         return view('admin/gains', $data);
     }
-
 
     public function clients()
     {
