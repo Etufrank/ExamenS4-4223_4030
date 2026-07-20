@@ -104,3 +104,4 @@ Migrations
 
  create_envois_multiples_table → crée la table envois_multiples
  add_destinataire_original_to_transactions → ajoute destinataire_original dans transactions
+add_est_inter_operateur_to_gains → ajoute est_inter_operateur dans gains
