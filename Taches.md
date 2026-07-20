@@ -106,6 +106,9 @@ Migrations
  add_destinataire_original_to_transactions → ajoute destinataire_original dans transactions
 add_est_inter_operateur_to_gains → ajoute est_inter_operateur dans gains
 
-Tahiry 
+Tahiry =
 Models modifié
 PrefixeOperateurModel
+
+Tahiry =
+Vues modifiées
