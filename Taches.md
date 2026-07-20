@@ -94,3 +94,10 @@ Tahiry
 Update du controller 
 AdminController 
 ClientController
+
+Frank 
+Migrations
+
+ add_operator_fields_to_prefixes 
+ = ajoute est_autre_operateur et commission_pourcentage dans prefixes_operateur
+ add_frais_inclus_to_transactions → ajoute frais_inclus et est_inter_operateur dans transactions
