@@ -93,3 +93,4 @@ Modification table
 Tahiry 
 Update du controller 
 AdminController 
+ClientController
