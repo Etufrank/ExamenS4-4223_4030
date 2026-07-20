@@ -101,3 +101,6 @@ Migrations
  add_operator_fields_to_prefixes 
  = ajoute est_autre_operateur et commission_pourcentage dans prefixes_operateur
  add_frais_inclus_to_transactions → ajoute frais_inclus et est_inter_operateur dans transactions
+
+ create_envois_multiples_table → crée la table envois_multiples
+ add_destinataire_original_to_transactions → ajoute destinataire_original dans transactions
