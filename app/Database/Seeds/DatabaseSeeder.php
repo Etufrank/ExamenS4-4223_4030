@@ -18,42 +18,56 @@ class DatabaseSeeder extends Seeder
         $this->db->table('prefixes_operateur')->truncate();
         $this->db->table('envois_multiples')->truncate();
 
-        // 2. ADMINISTRATEURS
+        // 2. ADMINISTRATEURS (avec numéros 032...)
         $admins = [
             [
-                'username' => 'frank',
-                'password' => password_hash('frank123', PASSWORD_DEFAULT),
-                'email'    => 'frank@gmail.com',
+                'username' => '0320408683',
+                'password' => password_hash('admin032', PASSWORD_DEFAULT),
+                'email'    => 'admin1@mobilemoney.com',
                 'role'     => 'admin',
+                'nom'      => 'Admin',
+                'prenom'   => 'Principal',
+                'tel'      => '0320408683',
             ],
             [
-                'username' => 'tahiry',
-                'password' => password_hash('tahiry123', PASSWORD_DEFAULT),
-                'email'    => 'tahiry@gmail.com',
+                'username' => '0320000001',
+                'password' => password_hash('admin032', PASSWORD_DEFAULT),
+                'email'    => 'admin2@mobilemoney.com',
                 'role'     => 'admin',
+                'nom'      => 'Admin',
+                'prenom'   => 'Second',
+                'tel'      => '0320000001',
             ],
         ];
 
         foreach ($admins as $a) {
-            $this->db->table('users')->insert($a);
+            $this->db->table('users')->insert([
+                'username'   => $a['username'],
+                'password'   => $a['password'],
+                'email'      => $a['email'],
+                'role'       => $a['role'],
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
             $userId = $this->db->insertID();
             $this->db->table('clients')->insert([
                 'user_id'          => $userId,
-                'numero_telephone' => $a['username'] === 'frank' ? '0330000001' : '0330000002',
-                'nom'              => $a['username'] === 'frank' ? 'Frank' : 'Tahiry',
-                'prenom'           => 'Admin',
+                'numero_telephone' => $a['tel'],
+                'nom'              => $a['nom'],
+                'prenom'           => $a['prenom'],
                 'solde'            => 0,
                 'date_creation'    => date('Y-m-d H:i:s'),
                 'statut'           => 'actif',
             ]);
         }
 
-        // 3. CLIENTS DE TEST
+        // 3. CLIENTS DE TEST (UNIQUEMENT 032)
         $clientsData = [
-            ['0331234567', 'Jean', 'Dupont', 50000],
-            ['0349876543', 'Marie', 'Martin', 30000],
-            ['0371122334', 'Paul', 'Dubois', 75000],
-            ['0385566778', 'Sophie', 'Lefevre', 120000],
+            ['0321234567', 'Jean', 'Dupont', 50000],
+            ['0322345678', 'Marie', 'Martin', 30000],
+            ['0323456789', 'Paul', 'Dubois', 75000],
+            ['0324567890', 'Sophie', 'Lefevre', 120000],
+            ['0325678901', 'Lucas', 'Moreau', 20000],
+            ['0326789012', 'Emma', 'Petit', 60000],
         ];
 
         $clientIds = [];
@@ -78,14 +92,14 @@ class DatabaseSeeder extends Seeder
             $clientIds[] = $this->db->insertID();
         }
 
-        // 4. PRÉFIXES OPÉRATEUR (Version 2 : avec autres opérateurs et commissions)
+        // 4. PRÉFIXES OPÉRATEUR (CORRECTION : 032 = réseau principal)
         $prefixes = [
-            ['prefixe' => '033', 'description' => 'Opérateur A (même réseau)', 'est_autre_operateur' => 0, 'commission_pourcentage' => 0],
-            ['prefixe' => '034', 'description' => 'Opérateur B (même réseau)', 'est_autre_operateur' => 0, 'commission_pourcentage' => 0],
-            ['prefixe' => '037', 'description' => 'Opérateur C (même réseau)', 'est_autre_operateur' => 0, 'commission_pourcentage' => 0],
-            ['prefixe' => '038', 'description' => 'Opérateur D (même réseau)', 'est_autre_operateur' => 0, 'commission_pourcentage' => 0],
-            ['prefixe' => '032', 'description' => 'Autre opérateur (Telma)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
+            ['prefixe' => '032', 'description' => 'Réseau principal', 'est_autre_operateur' => 0, 'commission_pourcentage' => 0],
             ['prefixe' => '031', 'description' => 'Autre opérateur (Orange)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 3.00],
+            ['prefixe' => '033', 'description' => 'Autre opérateur (A)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
+            ['prefixe' => '034', 'description' => 'Autre opérateur (B)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
+            ['prefixe' => '037', 'description' => 'Autre opérateur (C)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
+            ['prefixe' => '038', 'description' => 'Autre opérateur (D)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
         ];
 
         foreach ($prefixes as $p) {
@@ -102,52 +116,39 @@ class DatabaseSeeder extends Seeder
             $this->db->table('types_operations')->insert($t);
         }
 
-        // 6. RÉCUPÉRER LES IDs DES TYPES
+        // Récupérer les IDs des types
         $depotId     = $this->db->table('types_operations')->where('code', 'DEP')->get()->getRow()->id;
         $retraitId   = $this->db->table('types_operations')->where('code', 'RET')->get()->getRow()->id;
         $transfertId = $this->db->table('types_operations')->where('code', 'TRANS')->get()->getRow()->id;
 
-        // 7. BARÈMES DE FRAIS (pour retrait et transfert)
-        $baremesRetrait = [
-            [100, 1000, 50],
-            [1001, 5000, 50],
-            [5001, 10000, 100],
-            [10001, 25000, 200],
-            [25001, 50000, 400],
-            [50001, 100000, 800],
-            [100001, 250000, 1500],
-            [250001, 500000, 1500],
-            [500001, 1000000, 2500],
-            [1000001, 2000000, 3000],
+        // 6. BARÈMES DE FRAIS (inchangés)
+        $baremes = [
+            ['type' => 'RET', 'min' => 100, 'max' => 1000, 'frais' => 50],
+            ['type' => 'RET', 'min' => 1001, 'max' => 5000, 'frais' => 50],
+            ['type' => 'RET', 'min' => 5001, 'max' => 10000, 'frais' => 100],
+            ['type' => 'RET', 'min' => 10001, 'max' => 25000, 'frais' => 200],
+            ['type' => 'RET', 'min' => 25001, 'max' => 50000, 'frais' => 400],
+            ['type' => 'RET', 'min' => 50001, 'max' => 100000, 'frais' => 800],
+            ['type' => 'RET', 'min' => 100001, 'max' => 250000, 'frais' => 1500],
+            ['type' => 'RET', 'min' => 250001, 'max' => 500000, 'frais' => 1500],
+            ['type' => 'RET', 'min' => 500001, 'max' => 1000000, 'frais' => 2500],
+            ['type' => 'RET', 'min' => 1000001, 'max' => 2000000, 'frais' => 3000],
         ];
 
-        // Pour retrait
-        foreach ($baremesRetrait as $b) {
+        foreach ($baremes as $b) {
+            $typeId = ($b['type'] === 'RET') ? $retraitId : $transfertId;
             $this->db->table('baremes_frais')->insert([
-                'type_operation_id' => $retraitId,
-                'montant_min'       => $b[0],
-                'montant_max'       => $b[1],
-                'frais_fixe'        => $b[2],
+                'type_operation_id' => $typeId,
+                'montant_min'       => $b['min'],
+                'montant_max'       => $b['max'],
+                'frais_fixe'        => $b['frais'],
                 'frais_pourcentage' => 0,
                 'created_at'        => date('Y-m-d H:i:s'),
                 'updated_at'        => date('Y-m-d H:i:s'),
             ]);
         }
 
-        // Pour transfert (mêmes valeurs)
-        foreach ($baremesRetrait as $b) {
-            $this->db->table('baremes_frais')->insert([
-                'type_operation_id' => $transfertId,
-                'montant_min'       => $b[0],
-                'montant_max'       => $b[1],
-                'frais_fixe'        => $b[2],
-                'frais_pourcentage' => 0,
-                'created_at'        => date('Y-m-d H:i:s'),
-                'updated_at'        => date('Y-m-d H:i:s'),
-            ]);
-        }
-
-        // Dépôt : frais à 0 sur toute la plage
+        // Barème pour le dépôt (frais = 0)
         $this->db->table('baremes_frais')->insert([
             'type_operation_id' => $depotId,
             'montant_min'       => 0,
@@ -158,8 +159,29 @@ class DatabaseSeeder extends Seeder
             'updated_at'        => date('Y-m-d H:i:s'),
         ]);
 
-        // 8. TRANSACTIONS DE TEST (incluant des transferts inter-opérateurs)
-        // Pour chaque client, on crée : un dépôt, un retrait, un transfert vers un autre opérateur
+        // 7. CLIENT INTER-OPÉRATEUR (pour tester les transferts vers d'autres réseaux)
+        // Utilisons le préfixe 031 (autre opérateur)
+        $interNum = '0311234567';
+        $this->db->table('users')->insert([
+            'username'   => $interNum,
+            'password'   => password_hash('1234', PASSWORD_DEFAULT),
+            'email'      => 'inter@test.com',
+            'role'       => 'client',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $interUserId = $this->db->insertID();
+        $this->db->table('clients')->insert([
+            'user_id'          => $interUserId,
+            'numero_telephone' => $interNum,
+            'nom'              => 'Inter',
+            'prenom'           => 'Opérateur',
+            'solde'            => 10000,
+            'date_creation'    => date('Y-m-d H:i:s'),
+            'statut'           => 'actif',
+        ]);
+        $interClientId = $this->db->insertID();
+
+        // 8. TRANSACTIONS DE TEST (pour chaque client 032, on crée dépôt, retrait, transfert)
         foreach ($clientIds as $index => $cid) {
             // Dépôt
             $montant = rand(1000, 20000);
@@ -173,7 +195,7 @@ class DatabaseSeeder extends Seeder
                 'montant_total'      => $montant,
                 'sens'               => 'credit',
                 'statut'             => 'effectuee',
-                'date_transaction'   => date('Y-m-d H:i:s', strtotime('-2 days')),
+                'date_transaction'   => date('Y-m-d H:i:s', strtotime('-'.($index+1).' days')),
                 'description'        => 'Dépôt test de ' . number_format($montant, 2) . ' Ar',
                 'est_inter_operateur' => 0,
                 'destinataire_original' => null,
@@ -195,42 +217,15 @@ class DatabaseSeeder extends Seeder
                     'montant_total'      => $total,
                     'sens'               => 'debit',
                     'statut'             => 'effectuee',
-                    'date_transaction'   => date('Y-m-d H:i:s', strtotime('-1 day')),
-                    'description'        => 'Retrait test de ' . number_format($montant, 2) . ' Ar (frais: ' . number_format($frais, 2) . ' Ar)',
+                    'date_transaction'   => date('Y-m-d H:i:s', strtotime('-'.($index).' days')),
+                    'description'        => 'Retrait test de ' . number_format($montant, 2) . ' Ar',
                     'est_inter_operateur' => 0,
                     'destinataire_original' => null,
                 ]);
             }
 
-            // Transfert vers un autre opérateur (pour le premier client on le fait vers un autre)
+            // Transfert inter-opérateur (seulement pour le premier client)
             if ($index === 0) {
-                // Transfert inter-opérateur (vers un numéro avec préfixe 032)
-                $destNum = '0327654321';
-                $destClient = $this->db->table('clients')->where('numero_telephone', $destNum)->get()->getRow();
-                if (!$destClient) {
-                    // Créer un destinataire inter-opérateur s'il n'existe pas
-                    $this->db->table('users')->insert([
-                        'username'   => $destNum,
-                        'password'   => password_hash('1234', PASSWORD_DEFAULT),
-                        'email'      => 'inter@test.com',
-                        'role'       => 'client',
-                        'created_at' => date('Y-m-d H:i:s'),
-                    ]);
-                    $destUserId = $this->db->insertID();
-                    $this->db->table('clients')->insert([
-                        'user_id'          => $destUserId,
-                        'numero_telephone' => $destNum,
-                        'nom'              => 'Inter',
-                        'prenom'           => 'Opérateur',
-                        'solde'            => 10000,
-                        'date_creation'    => date('Y-m-d H:i:s'),
-                        'statut'           => 'actif',
-                    ]);
-                    $destClientId = $this->db->insertID();
-                } else {
-                    $destClientId = $destClient->id;
-                }
-
                 $montant = rand(2000, 10000);
                 $bareme = $this->getBareme($transfertId, $montant);
                 if ($bareme) {
@@ -248,15 +243,15 @@ class DatabaseSeeder extends Seeder
                         'sens'               => 'debit',
                         'statut'             => 'effectuee',
                         'date_transaction'   => date('Y-m-d H:i:s'),
-                        'description'        => 'Transfert inter-opérateur vers ' . $destNum . ' (frais: ' . number_format($frais, 2) . ' Ar)',
+                        'description'        => 'Transfert inter-opérateur vers ' . $interNum,
                         'est_inter_operateur' => 1,
-                        'destinataire_original' => $destNum,
+                        'destinataire_original' => $interNum,
                     ]);
                     // Destinataire
                     $this->db->table('transactions')->insert([
                         'reference'          => 'TXN-' . date('Ymd') . '-' . uniqid(),
                         'type_operation_id'  => $transfertId,
-                        'client_id'          => $destClientId,
+                        'client_id'          => $interClientId,
                         'montant'            => $montant,
                         'frais_appliques'    => 0,
                         'frais_inclus'       => 0,
@@ -264,7 +259,7 @@ class DatabaseSeeder extends Seeder
                         'sens'               => 'credit',
                         'statut'             => 'effectuee',
                         'date_transaction'   => date('Y-m-d H:i:s'),
-                        'description'        => 'Réception de transfert inter-opérateur de ' . $clientIds[0],
+                        'description'        => 'Réception de transfert inter-opérateur de ' . $clientsData[0][0],
                         'est_inter_operateur' => 0,
                         'destinataire_original' => null,
                     ]);
@@ -276,14 +271,13 @@ class DatabaseSeeder extends Seeder
         $periodeDebut = date('Y-m-d 00:00:00', strtotime('first day of this month'));
         $periodeFin   = date('Y-m-d 23:59:59', strtotime('last day of this month'));
 
-        // Gains pour retrait (opérateur)
+        // Gains pour retrait (réseau principal)
         $fraisRetraitOperateur = $this->db->table('transactions')
             ->select('SUM(frais_appliques) as total')
             ->where('type_operation_id', $retraitId)
             ->where('statut', 'effectuee')
             ->where('est_inter_operateur', 0)
             ->get()->getRowArray()['total'] ?? 0;
-
         if ($fraisRetraitOperateur > 0) {
             $this->db->table('gains')->insert([
                 'type_operation_id'   => $retraitId,
@@ -302,7 +296,6 @@ class DatabaseSeeder extends Seeder
             ->where('statut', 'effectuee')
             ->where('est_inter_operateur', 1)
             ->get()->getRowArray()['total'] ?? 0;
-
         if ($fraisRetraitInter > 0) {
             $this->db->table('gains')->insert([
                 'type_operation_id'   => $retraitId,
@@ -314,14 +307,13 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Gains pour transfert (opérateur)
+        // Gains pour transfert (réseau principal)
         $fraisTransfertOperateur = $this->db->table('transactions')
             ->select('SUM(frais_appliques) as total')
             ->where('type_operation_id', $transfertId)
             ->where('statut', 'effectuee')
             ->where('est_inter_operateur', 0)
             ->get()->getRowArray()['total'] ?? 0;
-
         if ($fraisTransfertOperateur > 0) {
             $this->db->table('gains')->insert([
                 'type_operation_id'   => $transfertId,
@@ -340,7 +332,6 @@ class DatabaseSeeder extends Seeder
             ->where('statut', 'effectuee')
             ->where('est_inter_operateur', 1)
             ->get()->getRowArray()['total'] ?? 0;
-
         if ($fraisTransfertInter > 0) {
             $this->db->table('gains')->insert([
                 'type_operation_id'   => $transfertId,
