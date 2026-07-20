@@ -8,7 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // 1. VIDER LES TABLES (ordre inversé des clés étrangères)
+        // 1. VIDER LES TABLES
         $this->db->table('transactions')->truncate();
         $this->db->table('gains')->truncate();
         $this->db->table('baremes_frais')->truncate();
@@ -18,26 +18,10 @@ class DatabaseSeeder extends Seeder
         $this->db->table('prefixes_operateur')->truncate();
         $this->db->table('envois_multiples')->truncate();
 
-        // 2. ADMINISTRATEURS (avec numéros 032...)
+        // 2. ADMINISTRATEURS
         $admins = [
-            [
-                'username' => '0320408683',
-                'password' => password_hash('admin032', PASSWORD_DEFAULT),
-                'email'    => 'admin1@mobilemoney.com',
-                'role'     => 'admin',
-                'nom'      => 'Admin',
-                'prenom'   => 'Principal',
-                'tel'      => '0320408683',
-            ],
-            [
-                'username' => '0320000001',
-                'password' => password_hash('admin032', PASSWORD_DEFAULT),
-                'email'    => 'admin2@mobilemoney.com',
-                'role'     => 'admin',
-                'nom'      => 'Admin',
-                'prenom'   => 'Second',
-                'tel'      => '0320000001',
-            ],
+            ['username' => '0320408683', 'password' => password_hash('admin032', PASSWORD_DEFAULT), 'email' => 'admin1@mobilemoney.com', 'role' => 'admin', 'nom' => 'Admin', 'prenom' => 'Principal', 'tel' => '0320408683'],
+            ['username' => '0320000001', 'password' => password_hash('admin032', PASSWORD_DEFAULT), 'email' => 'admin2@mobilemoney.com', 'role' => 'admin', 'nom' => 'Admin', 'prenom' => 'Second', 'tel' => '0320000001'],
         ];
 
         foreach ($admins as $a) {
@@ -60,7 +44,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 3. CLIENTS DE TEST (UNIQUEMENT 032)
+        // 3. CLIENTS DE TEST (032)
         $clientsData = [
             ['0321234567', 'Jean', 'Dupont', 50000],
             ['0322345678', 'Marie', 'Martin', 30000],
@@ -92,7 +76,7 @@ class DatabaseSeeder extends Seeder
             $clientIds[] = $this->db->insertID();
         }
 
-        // 4. PRÉFIXES OPÉRATEUR (CORRECTION : 032 = réseau principal)
+        // 4. PRÉFIXES OPÉRATEUR (032 = réseau principal)
         $prefixes = [
             ['prefixe' => '032', 'description' => 'Réseau principal', 'est_autre_operateur' => 0, 'commission_pourcentage' => 0],
             ['prefixe' => '031', 'description' => 'Autre opérateur (Orange)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 3.00],
@@ -101,7 +85,6 @@ class DatabaseSeeder extends Seeder
             ['prefixe' => '037', 'description' => 'Autre opérateur (C)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
             ['prefixe' => '038', 'description' => 'Autre opérateur (D)', 'est_autre_operateur' => 1, 'commission_pourcentage' => 2.50],
         ];
-
         foreach ($prefixes as $p) {
             $this->db->table('prefixes_operateur')->insert($p);
         }
@@ -116,29 +99,41 @@ class DatabaseSeeder extends Seeder
             $this->db->table('types_operations')->insert($t);
         }
 
-        // Récupérer les IDs des types
+        // Récupérer les IDs
         $depotId     = $this->db->table('types_operations')->where('code', 'DEP')->get()->getRow()->id;
         $retraitId   = $this->db->table('types_operations')->where('code', 'RET')->get()->getRow()->id;
         $transfertId = $this->db->table('types_operations')->where('code', 'TRANS')->get()->getRow()->id;
 
-        // 6. BARÈMES DE FRAIS (inchangés)
+        // 6. BARÈMES DE FRAIS (pour retrait ET transfert)
         $baremes = [
-            ['type' => 'RET', 'min' => 100, 'max' => 1000, 'frais' => 50],
-            ['type' => 'RET', 'min' => 1001, 'max' => 5000, 'frais' => 50],
-            ['type' => 'RET', 'min' => 5001, 'max' => 10000, 'frais' => 100],
-            ['type' => 'RET', 'min' => 10001, 'max' => 25000, 'frais' => 200],
-            ['type' => 'RET', 'min' => 25001, 'max' => 50000, 'frais' => 400],
-            ['type' => 'RET', 'min' => 50001, 'max' => 100000, 'frais' => 800],
-            ['type' => 'RET', 'min' => 100001, 'max' => 250000, 'frais' => 1500],
-            ['type' => 'RET', 'min' => 250001, 'max' => 500000, 'frais' => 1500],
-            ['type' => 'RET', 'min' => 500001, 'max' => 1000000, 'frais' => 2500],
-            ['type' => 'RET', 'min' => 1000001, 'max' => 2000000, 'frais' => 3000],
+            ['min' => 100, 'max' => 1000, 'frais' => 50],
+            ['min' => 1001, 'max' => 5000, 'frais' => 50],
+            ['min' => 5001, 'max' => 10000, 'frais' => 100],
+            ['min' => 10001, 'max' => 25000, 'frais' => 200],
+            ['min' => 25001, 'max' => 50000, 'frais' => 400],
+            ['min' => 50001, 'max' => 100000, 'frais' => 800],
+            ['min' => 100001, 'max' => 250000, 'frais' => 1500],
+            ['min' => 250001, 'max' => 500000, 'frais' => 1500],
+            ['min' => 500001, 'max' => 1000000, 'frais' => 2500],
+            ['min' => 1000001, 'max' => 2000000, 'frais' => 3000],
         ];
 
+        // Insertion pour retrait
         foreach ($baremes as $b) {
-            $typeId = ($b['type'] === 'RET') ? $retraitId : $transfertId;
             $this->db->table('baremes_frais')->insert([
-                'type_operation_id' => $typeId,
+                'type_operation_id' => $retraitId,
+                'montant_min'       => $b['min'],
+                'montant_max'       => $b['max'],
+                'frais_fixe'        => $b['frais'],
+                'frais_pourcentage' => 0,
+                'created_at'        => date('Y-m-d H:i:s'),
+                'updated_at'        => date('Y-m-d H:i:s'),
+            ]);
+        }
+        // Insertion pour transfert (mêmes barèmes)
+        foreach ($baremes as $b) {
+            $this->db->table('baremes_frais')->insert([
+                'type_operation_id' => $transfertId,
                 'montant_min'       => $b['min'],
                 'montant_max'       => $b['max'],
                 'frais_fixe'        => $b['frais'],
@@ -159,8 +154,7 @@ class DatabaseSeeder extends Seeder
             'updated_at'        => date('Y-m-d H:i:s'),
         ]);
 
-        // 7. CLIENT INTER-OPÉRATEUR (pour tester les transferts vers d'autres réseaux)
-        // Utilisons le préfixe 031 (autre opérateur)
+        // 7. CLIENT INTER-OPÉRATEUR (031)
         $interNum = '0311234567';
         $this->db->table('users')->insert([
             'username'   => $interNum,
@@ -181,7 +175,7 @@ class DatabaseSeeder extends Seeder
         ]);
         $interClientId = $this->db->insertID();
 
-        // 8. TRANSACTIONS DE TEST (pour chaque client 032, on crée dépôt, retrait, transfert)
+        // 8. TRANSACTIONS DE TEST (pour chaque client 032)
         foreach ($clientIds as $index => $cid) {
             // Dépôt
             $montant = rand(1000, 20000);
@@ -267,11 +261,11 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 9. GAINS (SITUATION DES FRAIS)
+        // 9. GAINS (situation des frais)
         $periodeDebut = date('Y-m-d 00:00:00', strtotime('first day of this month'));
         $periodeFin   = date('Y-m-d 23:59:59', strtotime('last day of this month'));
 
-        // Gains pour retrait (réseau principal)
+        // Gains retrait (réseau principal)
         $fraisRetraitOperateur = $this->db->table('transactions')
             ->select('SUM(frais_appliques) as total')
             ->where('type_operation_id', $retraitId)
@@ -288,8 +282,7 @@ class DatabaseSeeder extends Seeder
                 'created_at'          => date('Y-m-d H:i:s'),
             ]);
         }
-
-        // Gains pour retrait (inter-opérateur)
+        // Gains retrait (inter-opérateur)
         $fraisRetraitInter = $this->db->table('transactions')
             ->select('SUM(frais_appliques) as total')
             ->where('type_operation_id', $retraitId)
@@ -306,8 +299,7 @@ class DatabaseSeeder extends Seeder
                 'created_at'          => date('Y-m-d H:i:s'),
             ]);
         }
-
-        // Gains pour transfert (réseau principal)
+        // Gains transfert (réseau principal)
         $fraisTransfertOperateur = $this->db->table('transactions')
             ->select('SUM(frais_appliques) as total')
             ->where('type_operation_id', $transfertId)
@@ -324,8 +316,7 @@ class DatabaseSeeder extends Seeder
                 'created_at'          => date('Y-m-d H:i:s'),
             ]);
         }
-
-        // Gains pour transfert (inter-opérateur)
+        // Gains transfert (inter-opérateur)
         $fraisTransfertInter = $this->db->table('transactions')
             ->select('SUM(frais_appliques) as total')
             ->where('type_operation_id', $transfertId)
