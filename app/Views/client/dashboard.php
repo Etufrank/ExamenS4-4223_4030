@@ -7,7 +7,6 @@
             <div>
                 <div class="solde-label">Mon solde</div>
                 <div class="solde-amount"><?= number_format($client['solde'], 0, ',', ' ') ?> <span>Ar</span></div>
-                <p class="text-muted mt-2 mb-0">Numéro : <strong><?= esc($client['numero_telephone']) ?></strong></p>
             </div>
             <div class="row g-3 mt-4">
                 <div class="col-3">
