@@ -116,3 +116,4 @@ Vues modifiées
 
 Tahiry= 
 modification de la logique login  opérateur
+debug
