@@ -8,7 +8,7 @@ use App\Models\TypeOperationModel;
 use App\Models\BaremeFraisModel;
 use App\Models\UserModel;
 
-class ClientController extends BaseController
+class Client extends BaseController
 {
     protected $clientModel;
     protected $transactionModel;
