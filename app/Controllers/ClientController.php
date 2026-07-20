@@ -96,7 +96,7 @@ class ClientController extends BaseController
     public function doDepot()
     {
         $clientId = session()->get('client_id');
-        $montant = $this->request->getPost('montant');
+        $montant = (float) $this->request->getPost('montant');
 
         if (!$montant || $montant <= 0) {
             return redirect()->back()->withInput()->with('error', 'Montant invalide.');
@@ -129,10 +129,6 @@ class ClientController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion dépôt : ' . $e->getMessage());
-            $lastQuery = $this->transactionModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
@@ -153,7 +149,7 @@ class ClientController extends BaseController
     public function doRetrait()
     {
         $clientId = session()->get('client_id');
-        $montant = $this->request->getPost('montant');
+        $montant = (float) $this->request->getPost('montant');
 
         if (!$montant || $montant <= 0) {
             return redirect()->back()->withInput()->with('error', 'Montant invalide.');
@@ -166,7 +162,7 @@ class ClientController extends BaseController
 
         $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montant);
         if (!$bareme) {
-            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant.');
+            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant. Montant: ' . number_format($montant, 2) . ' Ar');
         }
 
         $frais = $bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100);
@@ -195,10 +191,6 @@ class ClientController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion retrait : ' . $e->getMessage());
-            $lastQuery = $this->transactionModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
@@ -218,7 +210,7 @@ class ClientController extends BaseController
     public function doTransfert()
     {
         $clientId = session()->get('client_id');
-        $montant = $this->request->getPost('montant');
+        $montant = (float) $this->request->getPost('montant');
         $destinataire = $this->request->getPost('destinataire');
 
         if (!$montant || $montant <= 0) {
@@ -245,7 +237,7 @@ class ClientController extends BaseController
 
         $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montant);
         if (!$bareme) {
-            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant.');
+            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant. Montant: ' . number_format($montant, 2) . ' Ar');
         }
 
         $frais = $bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100);
@@ -255,7 +247,6 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($montantTotal, 2) . ' Ar');
         }
 
-        // Transaction pour l'expéditeur (débit)
         $dataExp = [
             'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
@@ -268,7 +259,6 @@ class ClientController extends BaseController
             'description'        => 'Transfert à ' . $destinataire . ' - Montant: ' . number_format($montant, 2) . ' Ar (frais: ' . number_format($frais, 2) . ' Ar)',
         ];
 
-        // Transaction pour le destinataire (crédit)
         $dataDest = [
             'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
@@ -290,14 +280,9 @@ class ClientController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion transfert : ' . $e->getMessage());
-            $lastQuery = $this->transactionModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
-        
         $this->clientModel->update($clientId, [
             'solde' => $client['solde'] - $montantTotal
         ]);
