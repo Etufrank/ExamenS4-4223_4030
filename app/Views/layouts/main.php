@@ -16,7 +16,7 @@
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
         <div class="container">
             <a class="navbar-brand" href="<?= base_url() ?>">
-                <span>Smart</span>stock Pro
+                <span>Examen Final</span>4223_4030
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
