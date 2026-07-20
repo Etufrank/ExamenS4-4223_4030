@@ -164,7 +164,7 @@ class AdminController extends BaseController
 
     public function modifierBareme($id)
     {
-        $bareme = $this->baremeModel->find($id);
+        $bareme = $this->baremeModel->getBaremeWithType($id);
         if (!$bareme) {
             return redirect()->to('/admin/baremes')->with('error', 'Barème introuvable');
         }
@@ -264,7 +264,7 @@ class AdminController extends BaseController
 
         $montantsOperateurs = $this->transactionModel->getMontantsParOperateur($periodeDebut, $periodeFin);
         foreach ($montantsOperateurs as &$m) {
-            $commission = ($m['total_montant'] ?? 0) * ($m['commission_pourcentage'] / 100);
+            $commission = ($m['total_montant'] ?? 0) * (($m['commission_pourcentage'] ?? 0) / 100);
             $m['commission'] = $commission;
             $m['montant_net'] = ($m['total_montant'] ?? 0) - $commission;
         }
