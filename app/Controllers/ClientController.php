@@ -35,9 +35,11 @@ class ClientController extends BaseController
     {
         $numero = $this->request->getPost('numero_telephone');
         if (!$numero) {
-            return redirect()->back()->with('error', 'Veuillez entrer votre numéro de téléphone');
+            return redirect()->back()->withInput()->with('error', 'Veuillez entrer votre numéro de téléphone.');
         }
+
         $client = $this->clientModel->findByNumero($numero);
+
         if (!$client) {
             $user = $this->userModel->insert([
                 'username'   => $numero,
@@ -56,12 +58,14 @@ class ClientController extends BaseController
             ]);
             $client = $this->clientModel->find($clientId);
         }
+
         session()->set([
             'client_id'        => $client['id'],
             'numero_telephone' => $client['numero_telephone'],
             'nom'              => $client['nom'] . ' ' . $client['prenom'],
             'isLoggedIn'       => true
         ]);
+
         return redirect()->to('/client/dashboard');
     }
 
@@ -76,7 +80,7 @@ class ClientController extends BaseController
         $clientId = session()->get('client_id');
         $client = $this->clientModel->find($clientId);
         if (!$client) {
-            return redirect()->to('/client/login')->with('error', 'Veuillez vous reconnecter');
+            return redirect()->to('/client/login')->with('error', 'Veuillez vous reconnecter.');
         }
         $data['client'] = $client;
         $data['title'] = 'Mon compte';
@@ -93,19 +97,22 @@ class ClientController extends BaseController
     {
         $clientId = session()->get('client_id');
         $montant = $this->request->getPost('montant');
+
         if (!$montant || $montant <= 0) {
-            return redirect()->back()->with('error', 'Montant invalide');
+            return redirect()->back()->withInput()->with('error', 'Montant invalide.');
         }
+
         $type = $this->typeModel->getTypeByCode('DEP');
         if (!$type) {
-            return redirect()->back()->with('error', 'Type d\'opération "dépôt" introuvable');
+            return redirect()->back()->withInput()->with('error', 'Type d\'opération "dépôt" introuvable.');
         }
+
         $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montant);
         $frais = $bareme ? ($bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100)) : 0;
         $montantTotal = $montant - $frais;
-        $reference = $this->transactionModel->generateReference();
-        $this->transactionModel->save([
-            'reference'          => $reference,
+
+        $data = [
+            'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
             'client_id'          => $clientId,
             'montant'            => $montant,
@@ -114,11 +121,26 @@ class ClientController extends BaseController
             'sens'               => 'credit',
             'statut'             => 'effectuee',
             'description'        => 'Dépôt automatique de ' . number_format($montant, 2) . ' Ar',
-        ]);
+        ];
+
+        try {
+            if ($this->transactionModel->insert($data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion dépôt : ' . implode(', ', $this->transactionModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion dépôt : ' . $e->getMessage());
+            $lastQuery = $this->transactionModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+        }
+
         $client = $this->clientModel->find($clientId);
         $this->clientModel->update($clientId, [
             'solde' => $client['solde'] + $montantTotal
         ]);
+
         return redirect()->to('/client/dashboard')->with('success', 'Dépôt effectué avec succès ! Vous avez reçu ' . number_format($montantTotal, 2) . ' Ar (frais: ' . number_format($frais, 2) . ' Ar)');
     }
 
@@ -132,26 +154,31 @@ class ClientController extends BaseController
     {
         $clientId = session()->get('client_id');
         $montant = $this->request->getPost('montant');
+
         if (!$montant || $montant <= 0) {
-            return redirect()->back()->with('error', 'Montant invalide');
+            return redirect()->back()->withInput()->with('error', 'Montant invalide.');
         }
+
         $type = $this->typeModel->getTypeByCode('RET');
         if (!$type) {
-            return redirect()->back()->with('error', 'Type d\'opération "retrait" introuvable');
+            return redirect()->back()->withInput()->with('error', 'Type d\'opération "retrait" introuvable.');
         }
+
         $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montant);
         if (!$bareme) {
-            return redirect()->back()->with('error', 'Aucun barème trouvé pour ce montant');
+            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant.');
         }
+
         $frais = $bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100);
         $montantTotal = $montant + $frais;
+
         $client = $this->clientModel->find($clientId);
         if ($client['solde'] < $montantTotal) {
-            return redirect()->back()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($montantTotal, 2) . ' Ar');
+            return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($montantTotal, 2) . ' Ar');
         }
-        $reference = $this->transactionModel->generateReference();
-        $this->transactionModel->save([
-            'reference'          => $reference,
+
+        $data = [
+            'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
             'client_id'          => $clientId,
             'montant'            => $montant,
@@ -160,10 +187,25 @@ class ClientController extends BaseController
             'sens'               => 'debit',
             'statut'             => 'effectuee',
             'description'        => 'Retrait de ' . number_format($montant, 2) . ' Ar (frais: ' . number_format($frais, 2) . ' Ar)',
-        ]);
+        ];
+
+        try {
+            if ($this->transactionModel->insert($data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion retrait : ' . implode(', ', $this->transactionModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion retrait : ' . $e->getMessage());
+            $lastQuery = $this->transactionModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+        }
+
         $this->clientModel->update($clientId, [
             'solde' => $client['solde'] - $montantTotal
         ]);
+
         return redirect()->to('/client/dashboard')->with('success', 'Retrait effectué avec succès ! Montant: ' . number_format($montant, 2) . ' Ar, Frais: ' . number_format($frais, 2) . ' Ar, Total débité: ' . number_format($montantTotal, 2) . ' Ar');
     }
 
@@ -178,36 +220,44 @@ class ClientController extends BaseController
         $clientId = session()->get('client_id');
         $montant = $this->request->getPost('montant');
         $destinataire = $this->request->getPost('destinataire');
+
         if (!$montant || $montant <= 0) {
-            return redirect()->back()->with('error', 'Montant invalide');
+            return redirect()->back()->withInput()->with('error', 'Montant invalide.');
         }
         if (!$destinataire) {
-            return redirect()->back()->with('error', 'Numéro du destinataire requis');
+            return redirect()->back()->withInput()->with('error', 'Numéro du destinataire requis.');
         }
+
         $client = $this->clientModel->find($clientId);
         if ($client['numero_telephone'] === $destinataire) {
-            return redirect()->back()->with('error', 'Vous ne pouvez pas vous transférer à vous-même');
+            return redirect()->back()->withInput()->with('error', 'Vous ne pouvez pas vous transférer à vous-même.');
         }
+
         $type = $this->typeModel->getTypeByCode('TRANS');
         if (!$type) {
-            return redirect()->back()->with('error', 'Type d\'opération "transfert" introuvable');
+            return redirect()->back()->withInput()->with('error', 'Type d\'opération "transfert" introuvable.');
         }
+
         $destinataireClient = $this->clientModel->findByNumero($destinataire);
         if (!$destinataireClient) {
-            return redirect()->back()->with('error', 'Destinataire introuvable');
+            return redirect()->back()->withInput()->with('error', 'Destinataire introuvable.');
         }
+
         $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montant);
         if (!$bareme) {
-            return redirect()->back()->with('error', 'Aucun barème trouvé pour ce montant');
+            return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant.');
         }
+
         $frais = $bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100);
         $montantTotal = $montant + $frais;
+
         if ($client['solde'] < $montantTotal) {
-            return redirect()->back()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($montantTotal, 2) . ' Ar');
+            return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($montantTotal, 2) . ' Ar');
         }
-        $referenceExp = $this->transactionModel->generateReference();
-        $this->transactionModel->save([
-            'reference'          => $referenceExp,
+
+        // Transaction pour l'expéditeur (débit)
+        $dataExp = [
+            'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
             'client_id'          => $clientId,
             'montant'            => $montant,
@@ -216,10 +266,11 @@ class ClientController extends BaseController
             'sens'               => 'debit',
             'statut'             => 'effectuee',
             'description'        => 'Transfert à ' . $destinataire . ' - Montant: ' . number_format($montant, 2) . ' Ar (frais: ' . number_format($frais, 2) . ' Ar)',
-        ]);
-        $referenceDest = $this->transactionModel->generateReference();
-        $this->transactionModel->save([
-            'reference'          => $referenceDest,
+        ];
+
+        // Transaction pour le destinataire (crédit)
+        $dataDest = [
+            'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
             'client_id'          => $destinataireClient['id'],
             'montant'            => $montant,
@@ -228,13 +279,32 @@ class ClientController extends BaseController
             'sens'               => 'credit',
             'statut'             => 'effectuee',
             'description'        => 'Réception de transfert de ' . $client['numero_telephone'] . ' - Montant: ' . number_format($montant, 2) . ' Ar',
-        ]);
+        ];
+
+        try {
+            if ($this->transactionModel->insert($dataExp) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion transfert (expéditeur) : ' . implode(', ', $this->transactionModel->errors()));
+            }
+            if ($this->transactionModel->insert($dataDest) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion transfert (destinataire) : ' . implode(', ', $this->transactionModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion transfert : ' . $e->getMessage());
+            $lastQuery = $this->transactionModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+        }
+
+        
         $this->clientModel->update($clientId, [
             'solde' => $client['solde'] - $montantTotal
         ]);
         $this->clientModel->update($destinataireClient['id'], [
             'solde' => $destinataireClient['solde'] + $montant
         ]);
+
         return redirect()->to('/client/dashboard')->with('success', 'Transfert effectué avec succès ! Montant: ' . number_format($montant, 2) . ' Ar, Frais: ' . number_format($frais, 2) . ' Ar, Total débité: ' . number_format($montantTotal, 2) . ' Ar');
     }
 
