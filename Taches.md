@@ -120,3 +120,4 @@ debug
 modif controller
 modif views
 modif routes
+modif model prefixe

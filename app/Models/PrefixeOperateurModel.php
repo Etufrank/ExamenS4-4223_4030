@@ -11,12 +11,11 @@ class PrefixeOperateurModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
-    protected $allowedFields    = ['prefixe', 'description'];
+    protected $allowedFields    = ['prefixe', 'description', 'est_autre_operateur', 'commission_pourcentage'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
-    protected $updatedField     = '';
+    protected $updatedField     = 'updated_at';
 
-   
     public function getAutresOperateurs()
     {
         return $this->where('est_autre_operateur', 1)->findAll();
