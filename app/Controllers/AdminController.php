@@ -37,15 +37,34 @@ class AdminController extends BaseController
 
     public function ajouterPrefixe()
     {
-        $rules = ['prefixe' => 'required|is_unique[prefixes_operateur.prefixe]|min_length[2]|max_length[10]'];
+        $rules = [
+            'prefixe' => 'required|is_unique[prefixes_operateur.prefixe]|min_length[2]|max_length[10]',
+            'description' => 'permit_empty|max_length[255]',
+        ];
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
         }
-        $this->prefixeModel->save([
-            'prefixe'    => $this->request->getPost('prefixe'),
-            'description' => $this->request->getPost('description'),
-        ]);
-        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe ajouté avec succès');
+
+        $data = [
+            'prefixe'    => trim($this->request->getPost('prefixe')),
+            'description' => trim($this->request->getPost('description')),
+        ];
+
+        if (empty($data['prefixe'])) {
+            return redirect()->back()->withInput()->with('error', 'Le préfixe est requis.');
+        }
+
+        try {
+            if ($this->prefixeModel->insert($data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur lors de l\'insertion : ' . implode(', ', $this->prefixeModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion préfixe : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique lors de l\'insertion.');
+        }
+
+        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe ajouté avec succès.');
     }
 
     public function supprimerPrefixe($id)
@@ -64,18 +83,31 @@ class AdminController extends BaseController
     public function ajouterType()
     {
         $rules = [
-            'nom'  => 'required|is_unique[types_operations.nom]',
+            'nom'  => 'required|is_unique[types_operations.nom]|max_length[50]',
             'code' => 'required|is_unique[types_operations.code]|min_length[2]|max_length[10]',
+            'description' => 'permit_empty|max_length[255]',
         ];
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
         }
-        $this->typeModel->save([
-            'nom'         => $this->request->getPost('nom'),
-            'code'        => strtoupper($this->request->getPost('code')),
-            'description' => $this->request->getPost('description'),
-        ]);
-        return redirect()->to('/admin/types-operations')->with('success', 'Type ajouté avec succès');
+
+        $data = [
+            'nom'         => trim($this->request->getPost('nom')),
+            'code'        => strtoupper(trim($this->request->getPost('code'))),
+            'description' => trim($this->request->getPost('description')),
+        ];
+
+        try {
+            if ($this->typeModel->insert($data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion type : ' . implode(', ', $this->typeModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion type : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+        }
+
+        return redirect()->to('/admin/types-operations')->with('success', 'Type ajouté avec succès.');
     }
 
     public function supprimerType($id)
@@ -95,23 +127,41 @@ class AdminController extends BaseController
     public function ajouterBareme()
     {
         $rules = [
-            'type_operation_id'  => 'required',
-            'montant_min'        => 'required|numeric',
-            'montant_max'        => 'required|numeric',
-            'frais_fixe'         => 'permit_empty|numeric',
-            'frais_pourcentage'  => 'permit_empty|numeric',
+            'type_operation_id'  => 'required|is_natural_no_zero',
+            'montant_min'        => 'required|numeric|greater_than_equal_to[0]',
+            'montant_max'        => 'required|numeric|greater_than_equal_to[0]',
+            'frais_fixe'         => 'permit_empty|numeric|greater_than_equal_to[0]',
+            'frais_pourcentage'  => 'permit_empty|numeric|greater_than_equal_to[0]',
         ];
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
         }
-        $this->baremeModel->save([
-            'type_operation_id' => $this->request->getPost('type_operation_id'),
-            'montant_min'       => $this->request->getPost('montant_min'),
-            'montant_max'       => $this->request->getPost('montant_max'),
-            'frais_fixe'        => $this->request->getPost('frais_fixe') ?: 0,
-            'frais_pourcentage' => $this->request->getPost('frais_pourcentage') ?: 0,
-        ]);
-        return redirect()->to('/admin/baremes')->with('success', 'Barème ajouté avec succès');
+
+        $min = (float) $this->request->getPost('montant_min');
+        $max = (float) $this->request->getPost('montant_max');
+        if ($min > $max) {
+            return redirect()->back()->withInput()->with('error', 'Le montant minimum ne peut pas être supérieur au montant maximum.');
+        }
+
+        $data = [
+            'type_operation_id' => (int) $this->request->getPost('type_operation_id'),
+            'montant_min'       => $min,
+            'montant_max'       => $max,
+            'frais_fixe'        => (float) ($this->request->getPost('frais_fixe') ?: 0),
+            'frais_pourcentage' => (float) ($this->request->getPost('frais_pourcentage') ?: 0),
+        ];
+
+        try {
+            if ($this->baremeModel->insert($data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion barème : ' . implode(', ', $this->baremeModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion barème : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+        }
+
+        return redirect()->to('/admin/baremes')->with('success', 'Barème ajouté avec succès.');
     }
 
     public function modifierBareme($id)
@@ -129,21 +179,39 @@ class AdminController extends BaseController
     public function mettreAJourBareme($id)
     {
         $rules = [
-            'montant_min'        => 'required|numeric',
-            'montant_max'        => 'required|numeric',
-            'frais_fixe'         => 'permit_empty|numeric',
-            'frais_pourcentage'  => 'permit_empty|numeric',
+            'montant_min'        => 'required|numeric|greater_than_equal_to[0]',
+            'montant_max'        => 'required|numeric|greater_than_equal_to[0]',
+            'frais_fixe'         => 'permit_empty|numeric|greater_than_equal_to[0]',
+            'frais_pourcentage'  => 'permit_empty|numeric|greater_than_equal_to[0]',
         ];
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
         }
-        $this->baremeModel->update($id, [
-            'montant_min'       => $this->request->getPost('montant_min'),
-            'montant_max'       => $this->request->getPost('montant_max'),
-            'frais_fixe'        => $this->request->getPost('frais_fixe') ?: 0,
-            'frais_pourcentage' => $this->request->getPost('frais_pourcentage') ?: 0,
-        ]);
-        return redirect()->to('/admin/baremes')->with('success', 'Barème mis à jour');
+
+        $min = (float) $this->request->getPost('montant_min');
+        $max = (float) $this->request->getPost('montant_max');
+        if ($min > $max) {
+            return redirect()->back()->withInput()->with('error', 'Le montant minimum ne peut pas être supérieur au montant maximum.');
+        }
+
+        $data = [
+            'montant_min'       => $min,
+            'montant_max'       => $max,
+            'frais_fixe'        => (float) ($this->request->getPost('frais_fixe') ?: 0),
+            'frais_pourcentage' => (float) ($this->request->getPost('frais_pourcentage') ?: 0),
+        ];
+
+        try {
+            if ($this->baremeModel->update($id, $data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur mise à jour barème : ' . implode(', ', $this->baremeModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur mise à jour barème : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+        }
+
+        return redirect()->to('/admin/baremes')->with('success', 'Barème mis à jour avec succès.');
     }
 
     public function supprimerBareme($id)
