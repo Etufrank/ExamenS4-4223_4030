@@ -267,505 +267,28 @@ textarea:focus-visible,
 
 /* --- Tableaux --- */
 .table-custom {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-light);
+    --bs-table-border-color: var(--border-dark);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+    --bs-table-hover-bg: rgba(74, 158, 232, 0.06);
+    --bs-table-hover-color: var(--text-light);
     color: var(--text-light);
     border-color: var(--border-dark);
 }
 .table-custom thead th {
+    --bs-table-color: var(--text-muted);
     border-bottom: 2px solid var(--border-dark);
-    color: var(--text-muted);
     font-weight: 500;
     text-transform: uppercase;
     font-size: 12px;
     letter-spacing: 0.05em;
 }
 .table-custom td {
-    border-color: var(--border-dark);
     vertical-align: middle;
 }
 .table-custom tr {
     transition: background 0.2s ease;
-}
-.table-custom tr:hover {
-    background: rgba(74, 158, 232, 0.05);
-}
-
-/* --- Badges de statut --- */
-.badge-status {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-}
-.badge-success {
-    background: rgba(61, 204, 142, 0.15);
-    color: var(--green);
-}
-.badge-danger {
-    background: rgba(232, 90, 90, 0.15);
-    color: var(--red);
-}
-.badge-warning {
-    background: rgba(255, 193, 7, 0.15);
-    color: #ffc107;
-}
-
-/* --- Page de connexion --- */
-.login-container {
-    min-height: 80vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.login-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-dark);
-    border-radius: 20px;
-    padding: 40px;
-    max-width: 420px;
-    width: 100%;
-    box-shadow: var(--shadow-card);
-}
-.login-card h3 {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    color: var(--text-light);
-}
-.login-card label {
-    color: var(--text-muted);
-}
-.login-card .text-muted {
-    color: var(--text-dim) !important;
-}
-
-/* --- Responsive --- */
-@media (max-width: 576px) {
-    .solde-card .solde-amount {
-        font-size: 28px;
-    }
-    .login-card {
-        padding: 24px;
-    }
-}
-
-/* --- Liens --- */
-a, .btn-link {
-    color: var(--sky);
-}
-a:hover, .btn-link:hover {
-    color: var(--sky2);
-}
-
-/* --- Correction Bootstrap pour les list-group --- */
-.list-group-item {
-    background: var(--bg-card) !important;
-    color: var(--text-light) !important;
-    border-color: var(--border-dark) !important;
-}
-.list-group-item-action:hover {
-    background: var(--bg-hover) !important;
-}
-
-/* --- Correction des alertes Bootstrap --- */
-.alert {
-    background: var(--bg-card);
-    color: var(--text-light);
-    border-color: var(--border-dark);
-}
-.alert-success {
-    background: rgba(61, 204, 142, 0.1);
-    border-color: var(--green);
-    color: var(--green);
-}
-.alert-danger {
-    background: rgba(232, 90, 90, 0.1);
-    border-color: var(--red);
-    color: var(--red);
-}
-.alert-warning {
-    background: rgba(255, 193, 7, 0.1);
-    border-color: #ffc107;
-    color: #ffc107;
-}
-.alert-info {
-    background: rgba(74, 158, 232, 0.1);
-    border-color: var(--sky);
-    color: var(--sky2);
-}
-
-/* --- Correction des modals si utilisées --- */
-.modal-content {
-    background: var(--bg-card);
-    color: var(--text-light);
-    border-color: var(--border-dark);
-    box-shadow: var(--shadow-card);
-}
-.modal-header, .modal-footer {
-    border-color: var(--border-dark);
-}
-
-/* --- Correction du texte des paginations --- */
-.page-link {
-    background: var(--bg-card);
-    color: var(--text-light);
-    border-color: var(--border-dark);
-}
-.page-link:hover {
-    background: var(--bg-input);
-    color: var(--sky);
-}
-.page-item.active .page-link {
-    background: var(--sky);
-    border-color: var(--sky);
-    color: #0A1A2C;
-}
-.page-item.disabled .page-link {
-    background: var(--bg-card);
-    color: var(--text-dim);
-}
-
-/* --- Onglets (nav-tabs / nav-pills) --- */
-.nav-tabs {
-    border-color: var(--border-dark);
-}
-.nav-tabs .nav-link {
-    color: var(--text-muted);
-    border: none;
-    border-bottom: 2px solid transparent;
-}
-.nav-tabs .nav-link:hover {
-    color: var(--text-light);
-    border-color: var(--border-dark);
-}
-.nav-tabs .nav-link.active {
-    color: var(--sky);
-    background: transparent;
-    border-color: var(--sky);
-}
-.nav-pills .nav-link {
-    color: var(--text-muted);
-}
-.nav-pills .nav-link.active {
-    background: var(--sky);
-    color: #0A1A2C;
-}
-
-/* --- Toasts --- */
-.toast {
-    background: var(--bg-card);
-    color: var(--text-light);
-    border: 1px solid var(--border-dark);
-}
-.toast-header {
-    background: var(--bg-input);
-    color: var(--text-muted);
-    border-color: var(--border-dark);
-}
-
-/* --- Scrollbar plus discrète --- */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-::-webkit-scrollbar-track {
-    background: var(--bg-dark);
-}
-::-webkit-scrollbar-thumb {
-    background: var(--border-dark);
-    border-radius: 6px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--sky);
-}
-
-/* ============================================================
-   STYLES PERSONNALISÉS POUR LE PROJET MOBILE MONEY
-   Basé sur le template NovaPay + Bootstrap
-   Version améliorée
-   ============================================================ */
-
-:root {
-    --bg-dark: #0F1319;
-    --bg-card: #141920;
-    --bg-input: #1A2130;
-    --bg-hover: #1E2632;
-    --border-dark: #1E3050;
-    --sky: #4A9EE8;
-    --sky2: #7EC8F0;
-    --text-light: #E4EEF8;
-    --text-muted: #8AAEC8;
-    --text-dim: #506070;
-    --green: #3DCC8E;
-    --red: #E85A5A;
-    --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.25);
-    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
-    --radius: 12px;
-    --radius-lg: 16px;
-}
-
-/* Réinitialisation pour forcer le fond sombre et le texte clair */
-body {
-    background: var(--bg-dark) !important;
-    color: var(--text-light) !important;
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-}
-
-/* --- Focus clavier visible partout (accessibilité) --- */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-.btn:focus-visible {
-    outline: 2px solid var(--sky);
-    outline-offset: 2px;
-}
-
-/* --- Navbar personnalisée --- */
-.navbar-custom {
-    background: rgba(15, 19, 25, 0.95) !important;
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-dark);
-    box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-}
-.navbar-custom .navbar-brand {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 800;
-    color: var(--text-light);
-    letter-spacing: -0.02em;
-}
-.navbar-custom .navbar-brand span {
-    color: var(--sky);
-}
-.navbar-custom .nav-link {
-    color: var(--text-muted) !important;
-    font-weight: 400;
-    transition: color 0.3s ease;
-}
-.navbar-custom .nav-link:hover {
-    color: var(--text-light) !important;
-}
-.navbar-custom .nav-link.active {
-    color: var(--sky) !important;
-}
-.navbar-custom .navbar-toggler {
-    border-color: var(--border-dark);
-}
-
-/* --- Cartes --- */
-.card-glass {
-    background: var(--bg-card);
-    border: 1px solid var(--border-dark);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.card-glass:hover {
-    transform: translateY(-3px);
-    border-color: var(--sky);
-    box-shadow: var(--shadow-card);
-}
-.card-glass .card-title {
-    color: var(--text-light);
-    font-weight: 700;
-}
-.card-glass .card-text {
-    color: var(--text-muted);
-}
-
-/* --- Boutons --- */
-.btn-primary-custom {
-    background: var(--sky);
-    border: none;
-    color: #0A1A2C;
-    font-weight: 600;
-    padding: 10px 24px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(74, 158, 232, 0.25);
-    transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-}
-.btn-primary-custom:hover {
-    background: var(--sky2);
-    transform: translateY(-2px);
-    color: #0A1A2C;
-    box-shadow: 0 6px 18px rgba(74, 158, 232, 0.35);
-}
-.btn-primary-custom:active {
-    transform: translateY(0);
-}
-.btn-outline-custom {
-    background: transparent;
-    border: 1px solid var(--border-dark);
-    color: var(--text-light);
-    padding: 10px 24px;
-    border-radius: 10px;
-    transition: border-color 0.3s, color 0.3s, background 0.3s;
-}
-.btn-outline-custom:hover {
-    border-color: var(--sky);
-    color: var(--sky);
-    background: rgba(74, 158, 232, 0.06);
-}
-
-/* --- Formulaires --- */
-.form-control-custom {
-    background: var(--bg-input);
-    border: 1px solid var(--border-dark);
-    color: var(--text-light);
-    border-radius: 10px;
-    padding: 12px 16px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.form-control-custom:focus {
-    background: var(--bg-input);
-    border-color: var(--sky);
-    color: var(--text-light);
-    box-shadow: 0 0 0 0.25rem rgba(74, 158, 232, 0.25);
-}
-.form-control-custom::placeholder {
-    color: var(--text-dim);
-}
-
-/* --- Éléments de formulaire Bootstrap natifs sur fond sombre --- */
-.form-select {
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-dark);
-    color: var(--text-light);
-    border-radius: 10px;
-}
-.form-select:focus {
-    background-color: var(--bg-input);
-    border-color: var(--sky);
-    color: var(--text-light);
-    box-shadow: 0 0 0 0.25rem rgba(74, 158, 232, 0.25);
-}
-.form-select option {
-    background-color: var(--bg-card);
-    color: var(--text-light);
-}
-
-.form-check-input {
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-dark);
-}
-.form-check-input:checked {
-    background-color: var(--sky);
-    border-color: var(--sky);
-}
-.form-check-input:focus {
-    border-color: var(--sky);
-    box-shadow: 0 0 0 0.25rem rgba(74, 158, 232, 0.25);
-}
-.form-check-label {
-    color: var(--text-muted);
-}
-
-.form-text {
-    color: var(--text-dim);
-}
-.invalid-feedback {
-    color: var(--red);
-}
-.valid-feedback {
-    color: var(--green);
-}
-.form-control.is-invalid,
-.form-select.is-invalid {
-    border-color: var(--red);
-}
-.form-control.is-valid,
-.form-select.is-valid {
-    border-color: var(--green);
-}
-
-/* --- Menus déroulants (dropdown) --- */
-.dropdown-menu {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-dark);
-    box-shadow: var(--shadow-card);
-}
-.dropdown-item {
-    color: var(--text-light);
-}
-.dropdown-item:hover,
-.dropdown-item:focus {
-    background-color: var(--bg-hover);
-    color: var(--sky);
-}
-.dropdown-item.active,
-.dropdown-item:active {
-    background-color: var(--sky);
-    color: #0A1A2C;
-}
-.dropdown-divider {
-    border-color: var(--border-dark);
-}
-
-/* --- Bouton de fermeture (croix) sur fond sombre --- */
-.btn-close {
-    filter: invert(1) grayscale(100%) brightness(200%);
-}
-
-/* --- Alertes flash --- */
-.alert-custom {
-    border-radius: 12px;
-    border: none;
-    background: var(--bg-card);
-    color: var(--text-light);
-    border-left: 4px solid var(--sky);
-}
-.alert-success-custom {
-    border-left-color: var(--green);
-}
-.alert-danger-custom {
-    border-left-color: var(--red);
-}
-
-/* --- Dashboard (solde) --- */
-.solde-card {
-    background: linear-gradient(135deg, var(--bg-card), var(--bg-input));
-    border: 1px solid var(--border-dark);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: var(--shadow-card);
-}
-.solde-card .solde-label {
-    color: var(--text-muted);
-    font-size: 14px;
-    letter-spacing: 0.05em;
-}
-.solde-card .solde-amount {
-    font-family: 'Outfit', sans-serif;
-    font-size: 42px;
-    font-weight: 800;
-    color: var(--text-light);
-}
-.solde-card .solde-amount span {
-    color: var(--sky);
-}
-
-/* --- Tableaux --- */
-.table-custom {
-    color: var(--text-light);
-    border-color: var(--border-dark);
-}
-.table-custom thead th {
-    border-bottom: 2px solid var(--border-dark);
-    color: var(--text-muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-}
-.table-custom td {
-    border-color: var(--border-dark);
-    vertical-align: middle;
-}
-.table-custom tr {
-    transition: background 0.2s ease;
-}
-.table-custom tr:hover {
-    background: rgba(74, 158, 232, 0.05);
 }
 
 /* --- Badges de statut --- */
@@ -1025,22 +548,6 @@ a:hover, .btn-link:hover {
     text-decoration: none;
 }
 
-/* --- Scrollbar plus discrète --- */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-::-webkit-scrollbar-track {
-    background: var(--bg-dark);
-}
-::-webkit-scrollbar-thumb {
-    background: var(--border-dark);
-    border-radius: 6px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--sky);
-}
-
 /* --- Correction texte muted invisible sur fond sombre --- */
 .text-muted {
     color: var(--text-muted) !important;
@@ -1082,4 +589,20 @@ a:hover, .btn-link:hover {
 
 .card-glass:hover {
     box-shadow: var(--shadow-card), 0 0 20px rgba(74, 158, 232, 0.12);
+}
+
+/* --- Scrollbar plus discrète --- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border-dark);
+    border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--sky);
 }
