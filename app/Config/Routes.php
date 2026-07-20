@@ -6,7 +6,10 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-$routes->get('/', 'ClientController::register');
+$routes->get('/', 'ClientController::login');
+$routes->get('client/login', 'ClientController::login');
+$routes->post('client/do-login', 'ClientController::doLogin');
+$routes->get('client/logout', 'ClientController::logout');
 
 $routes->group('admin', function($routes) {
     $routes->get('prefixes', 'AdminController::prefixes');
@@ -26,13 +29,6 @@ $routes->group('admin', function($routes) {
     $routes->get('gains', 'AdminController::gains');
     $routes->get('clients', 'AdminController::clients');
 });
-
-$routes->get('client/login', 'ClientController::login');
-$routes->post('client/do-login', 'ClientController::doLogin');
-$routes->get('client/register', 'ClientController::register');
-$routes->post('client/do-register', 'ClientController::doRegister');
-$routes->get('client/logout', 'ClientController::logout');
-$routes->get('client/check-phone', 'ClientController::checkPhone');
 
 $routes->group('client', ['filter' => 'auth'], function($routes) {
     $routes->get('dashboard', 'ClientController::dashboard');

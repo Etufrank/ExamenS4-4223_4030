@@ -12,9 +12,6 @@
             </div>
             <button type="submit" class="btn btn-primary-custom w-100">Se connecter</button>
         </form>
-        <p class="text-center text-muted mt-3" style="font-size: 13px;">
-            Pas encore de compte ? <a href="<?= base_url('client/register') ?>" style="color: var(--sky);">S'inscrire</a>
-        </p>
     </div>
 </div>
 <?= $this->endSection() ?>
