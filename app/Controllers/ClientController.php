@@ -32,33 +32,84 @@ class ClientController extends BaseController
     }
 
     public function doLogin()
+{
+    $numero = $this->request->getPost('numero_telephone');
+    if (!$numero) {
+        return redirect()->back()->withInput()->with('error', 'Veuillez entrer votre numéro de téléphone.');
+    }
+
+    $client = $this->clientModel->findByNumero($numero);
+
+    if (!$client) {
+        return redirect()->to('/client/register?numero=' . urlencode($numero));
+    }
+
+    session()->set([
+        'client_id'        => $client['id'],
+        'numero_telephone' => $client['numero_telephone'],
+        'nom'              => $client['nom'] . ' ' . $client['prenom'],
+        'isLoggedIn'       => true
+    ]);
+
+    return redirect()->to('/client/dashboard');
+}
+
+    public function register()
     {
+        $numero = $this->request->getGet('numero');
+        $data['numero'] = $numero ?? '';
+        $data['title'] = 'Inscription';
+        return view('client/register', $data);
+    }
+
+    public function doRegister()
+    {
+        $rules = [
+            'numero_telephone' => 'required|is_unique[clients.numero_telephone]|regex_match[/^(032|033|034|037|038)\d{7}$|^\+261(32|33|34|37|38)\d{7}$/]',
+            'nom'              => 'required|min_length[2]|max_length[100]',
+            'prenom'           => 'required|min_length[2]|max_length[100]',
+            'email'            => 'permit_empty|valid_email|max_length[100]',
+            'password'         => 'required|min_length[4]|max_length[255]',
+            'password_confirm' => 'matches[password]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
         $numero = $this->request->getPost('numero_telephone');
-        if (!$numero) {
-            return redirect()->back()->withInput()->with('error', 'Veuillez entrer votre numéro de téléphone.');
+        $email = $this->request->getPost('email');
+
+        $userData = [
+            'username'   => $numero,
+            'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'email'      => $email ?: null,
+            'role'       => 'client',
+            'created_at' => date('Y-m-d H:i:s'),
+        ];
+
+        $userId = $this->userModel->insert($userData);
+        if (!$userId) {
+            return redirect()->back()->withInput()->with('error', 'Erreur lors de la création du compte utilisateur.');
         }
 
-        $client = $this->clientModel->findByNumero($numero);
+        $clientData = [
+            'user_id'          => $userId,
+            'numero_telephone' => $numero,
+            'nom'              => $this->request->getPost('nom'),
+            'prenom'           => $this->request->getPost('prenom'),
+            'solde'            => 0,
+            'date_creation'    => date('Y-m-d H:i:s'),
+            'statut'           => 'actif',
+        ];
 
-        if (!$client) {
-            $user = $this->userModel->insert([
-                'username'   => $numero,
-                'password'   => password_hash($numero, PASSWORD_DEFAULT),
-                'role'       => 'client',
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-            $clientId = $this->clientModel->insert([
-                'user_id'          => $user,
-                'numero_telephone' => $numero,
-                'nom'              => 'Client',
-                'prenom'           => 'Auto',
-                'solde'            => 0,
-                'date_creation'    => date('Y-m-d H:i:s'),
-                'statut'           => 'actif',
-            ]);
-            $client = $this->clientModel->find($clientId);
+        $clientId = $this->clientModel->insert($clientData);
+        if (!$clientId) {
+            $this->userModel->delete($userId);
+            return redirect()->back()->withInput()->with('error', 'Erreur lors de la création du compte client.');
         }
 
+        $client = $this->clientModel->find($clientId);
         session()->set([
             'client_id'        => $client['id'],
             'numero_telephone' => $client['numero_telephone'],
@@ -66,7 +117,58 @@ class ClientController extends BaseController
             'isLoggedIn'       => true
         ]);
 
-        return redirect()->to('/client/dashboard');
+        return redirect()->to('/client/dashboard')->with('success', 'Compte créé avec succès !');
+    }
+
+    public function setPassword()
+    {
+        $numero = $this->request->getGet('numero');
+        if (!$numero) {
+            return redirect()->to('/client/login');
+        }
+        $data['numero'] = $numero;
+        $data['title'] = 'Définir un mot de passe';
+        return view('client/set_password', $data);
+    }
+
+    public function doSetPassword()
+    {
+        $rules = [
+            'numero_telephone' => 'required|exists[clients.numero_telephone]',
+            'password'         => 'required|min_length[4]|max_length[255]',
+            'password_confirm' => 'matches[password]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        $numero = $this->request->getPost('numero_telephone');
+        $client = $this->clientModel->findByNumero($numero);
+        if (!$client) {
+            return redirect()->to('/client/login')->with('error', 'Client introuvable.');
+        }
+
+        $user = $this->userModel->find($client['user_id']);
+        if (!$user) {
+            return redirect()->back()->withInput()->with('error', 'Utilisateur introuvable.');
+        }
+
+        $this->userModel->update($user['id'], [
+            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+        ]);
+
+        return redirect()->to('/client/login')->with('success', 'Mot de passe défini avec succès. Veuillez vous connecter.');
+    }
+
+    public function checkPhone()
+    {
+        $numero = $this->request->getGet('numero');
+        if (!$numero) {
+            return $this->response->setJSON(['exists' => false]);
+        }
+        $client = $this->clientModel->findByNumero($numero);
+        return $this->response->setJSON(['exists' => ($client !== null)]);
     }
 
     public function logout()
@@ -102,6 +204,11 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Montant invalide.');
         }
 
+        $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return redirect()->to('/client/login')->with('error', 'Client introuvable. Veuillez vous reconnecter.');
+        }
+
         $type = $this->typeModel->getTypeByCode('DEP');
         if (!$type) {
             return redirect()->back()->withInput()->with('error', 'Type d\'opération "dépôt" introuvable.');
@@ -132,7 +239,6 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
-        $client = $this->clientModel->find($clientId);
         $this->clientModel->update($clientId, [
             'solde' => $client['solde'] + $montantTotal
         ]);
@@ -155,6 +261,11 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Montant invalide.');
         }
 
+        $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return redirect()->to('/client/login')->with('error', 'Client introuvable. Veuillez vous reconnecter.');
+        }
+
         $type = $this->typeModel->getTypeByCode('RET');
         if (!$type) {
             return redirect()->back()->withInput()->with('error', 'Type d\'opération "retrait" introuvable.');
@@ -168,7 +279,6 @@ class ClientController extends BaseController
         $frais = $bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100);
         $montantTotal = $montant + $frais;
 
-        $client = $this->clientModel->find($clientId);
         if ($client['solde'] < $montantTotal) {
             return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($montantTotal, 2) . ' Ar');
         }
@@ -221,6 +331,9 @@ class ClientController extends BaseController
         }
 
         $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return redirect()->to('/client/login')->with('error', 'Client introuvable. Veuillez vous reconnecter.');
+        }
         if ($client['numero_telephone'] === $destinataire) {
             return redirect()->back()->withInput()->with('error', 'Vous ne pouvez pas vous transférer à vous-même.');
         }
