@@ -48,4 +48,6 @@ Thumbs.db
 *.log
 *.bak
 *.swp
+*.db
+*.txt
 *~
