@@ -33,4 +33,12 @@ class BaremeFraisModel extends Model
                     ->orderBy('montant_min')
                     ->findAll();
     }
+
+    public function getBaremeWithType($id)
+    {
+        return $this->select('baremes_frais.*, types_operations.nom as type_nom, types_operations.code')
+                    ->join('types_operations', 'types_operations.id = baremes_frais.type_operation_id')
+                    ->where('baremes_frais.id', $id)
+                    ->first();
+    }
 }
