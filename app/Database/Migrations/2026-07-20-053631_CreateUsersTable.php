@@ -30,7 +30,8 @@ class CreateUsersTable extends Migration
                 'null' => true,
             ],
             'role' => [
-                'type' => "ENUM('admin','client')",
+                'type' => 'VARCHAR',
+                'constraint' => 20,
                 'default' => 'client',
             ],
             'created_at' => [
@@ -41,10 +42,13 @@ class CreateUsersTable extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addKey('username');
         $this->forge->createTable('users');
+
+        $this->db->query("CREATE TRIGGER check_user_role BEFORE INSERT ON users BEGIN SELECT CASE WHEN NEW.role NOT IN ('admin', 'client') THEN RAISE(ABORT, 'Role invalide') END; END;");
     }
 
     public function down()
     {
+        $this->db->query('DROP TRIGGER IF EXISTS check_user_role');
         $this->forge->dropTable('users', true);
     }
 }
