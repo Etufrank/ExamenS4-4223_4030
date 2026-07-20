@@ -117,3 +117,6 @@ Vues modifiées
 Tahiry= 
 modification de la logique login  opérateur
 debug
+modif controller
+modif views
+modif routes
