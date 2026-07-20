@@ -57,11 +57,15 @@ class AdminController extends BaseController
 
         try {
             if ($this->prefixeModel->insert($data) === false) {
-                return redirect()->back()->withInput()->with('error', 'Erreur lors de l\'insertion : ' . implode(', ', $this->prefixeModel->errors()));
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion : ' . implode(', ', $this->prefixeModel->errors()));
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion préfixe : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique lors de l\'insertion.');
+            $lastQuery = $this->prefixeModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
         return redirect()->to('/admin/prefixes')->with('success', 'Préfixe ajouté avec succès.');
@@ -98,13 +102,21 @@ class AdminController extends BaseController
             'description' => trim($this->request->getPost('description')),
         ];
 
+        if (empty($data['nom']) || empty($data['code'])) {
+            return redirect()->back()->withInput()->with('error', 'Le nom et le code sont requis.');
+        }
+
         try {
             if ($this->typeModel->insert($data) === false) {
                 return redirect()->back()->withInput()->with('error', 'Erreur insertion type : ' . implode(', ', $this->typeModel->errors()));
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion type : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+            $lastQuery = $this->typeModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
         return redirect()->to('/admin/types-operations')->with('success', 'Type ajouté avec succès.');
@@ -152,13 +164,21 @@ class AdminController extends BaseController
             'frais_pourcentage' => (float) ($this->request->getPost('frais_pourcentage') ?: 0),
         ];
 
+        if ($data['type_operation_id'] <= 0) {
+            return redirect()->back()->withInput()->with('error', 'Veuillez sélectionner un type d\'opération valide.');
+        }
+
         try {
             if ($this->baremeModel->insert($data) === false) {
                 return redirect()->back()->withInput()->with('error', 'Erreur insertion barème : ' . implode(', ', $this->baremeModel->errors()));
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion barème : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+            $lastQuery = $this->baremeModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
         return redirect()->to('/admin/baremes')->with('success', 'Barème ajouté avec succès.');
@@ -208,7 +228,11 @@ class AdminController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur mise à jour barème : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+            $lastQuery = $this->baremeModel->db->getLastQuery();
+            if ($lastQuery) {
+                log_message('error', 'Dernière requête : ' . $lastQuery);
+            }
+            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
         return redirect()->to('/admin/baremes')->with('success', 'Barème mis à jour avec succès.');
