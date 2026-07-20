@@ -1,3 +1,7 @@
+-- ============================================
+-- STRUCTURE DES TABLES
+-- ============================================
+
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -74,6 +78,10 @@ CREATE TABLE IF NOT EXISTS gains (
     FOREIGN KEY (type_operation_id) REFERENCES types_operations(id)
 );
 
+-- ============================================
+-- INDEX
+-- ============================================
+
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_clients_telephone ON clients(numero_telephone);
 CREATE INDEX idx_clients_user ON clients(user_id);
@@ -81,3 +89,101 @@ CREATE INDEX idx_transactions_client ON transactions(client_id);
 CREATE INDEX idx_transactions_type ON transactions(type_operation_id);
 CREATE INDEX idx_transactions_date ON transactions(date_transaction);
 CREATE INDEX idx_baremes_type ON baremes_frais(type_operation_id);
+
+-- ============================================
+-- DONNÉES INITIALES
+-- ============================================
+
+-- Types d'opérations
+INSERT OR IGNORE INTO types_operations (nom, code, description) VALUES
+('dépôt', 'DEP', 'Dépôt sur compte'),
+('retrait', 'RET', 'Retrait depuis compte'),
+('transfert', 'TRANS', 'Transfert entre comptes');
+
+-- Préfixes opérateur
+INSERT OR IGNORE INTO prefixes_operateur (prefixe, description) VALUES
+('033', 'Opérateur A'),
+('037', 'Opérateur B');
+
+-- Barèmes pour retrait (type_operation_id = 2, mais après insertion on aura les IDs réels)
+-- On utilise les IDs dynamiques via des sous-requêtes pour éviter les soucis de numérotation
+INSERT OR IGNORE INTO baremes_frais (type_operation_id, montant_min, montant_max, frais_fixe)
+SELECT id, 100, 1000, 50 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 1001, 5000, 50 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 5001, 10000, 100 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 10001, 25000, 200 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 25001, 50000, 400 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 50001, 100000, 800 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 100001, 250000, 1500 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 250001, 500000, 1500 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 500001, 1000000, 2500 FROM types_operations WHERE code = 'RET'
+UNION ALL
+SELECT id, 1000001, 2000000, 3000 FROM types_operations WHERE code = 'RET';
+
+-- Barèmes pour transfert (mêmes barèmes)
+INSERT OR IGNORE INTO baremes_frais (type_operation_id, montant_min, montant_max, frais_fixe)
+SELECT id, 100, 1000, 50 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 1001, 5000, 50 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 5001, 10000, 100 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 10001, 25000, 200 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 25001, 50000, 400 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 50001, 100000, 800 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 100001, 250000, 1500 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 250001, 500000, 1500 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 500001, 1000000, 2500 FROM types_operations WHERE code = 'TRANS'
+UNION ALL
+SELECT id, 1000001, 2000000, 3000 FROM types_operations WHERE code = 'TRANS';
+
+-- Barème pour dépôt (frais à 0)
+INSERT OR IGNORE INTO baremes_frais (type_operation_id, montant_min, montant_max, frais_fixe)
+SELECT id, 0, 999999999, 0 FROM types_operations WHERE code = 'DEP';
+
+-- Admin Frank (numéro 0330000001, mot de passe : frank123)
+INSERT OR IGNORE INTO users (username, password, email, role) 
+VALUES ('frank', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'frank@gmail.com', 'admin');
+INSERT OR IGNORE INTO clients (user_id, numero_telephone, nom, prenom, solde) 
+SELECT id, '0330000001', 'Frank', 'Admin', 0 FROM users WHERE username = 'frank';
+
+-- Admin Tahiry (numéro 0330000002, mot de passe : tahiry123)
+INSERT OR IGNORE INTO users (username, password, email, role) 
+VALUES ('tahiry', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'tahiry@gmail.com', 'admin');
+INSERT OR IGNORE INTO clients (user_id, numero_telephone, nom, prenom, solde) 
+SELECT id, '0330000002', 'Tahiry', 'Admin', 0 FROM users WHERE username = 'tahiry';
+
+-- Client test (numéro 0331234567, mot de passe : 1234)
+INSERT OR IGNORE INTO users (username, password, email, role) 
+VALUES ('0331234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'client@test.com', 'client');
+INSERT OR IGNORE INTO clients (user_id, numero_telephone, nom, prenom, solde) 
+SELECT id, '0331234567', 'Jean', 'Dupont', 50000 FROM users WHERE username = '0331234567';
+
+-- Autres clients de test
+INSERT OR IGNORE INTO users (username, password, email, role) 
+VALUES ('0349876543', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'marie@test.com', 'client');
+INSERT OR IGNORE INTO clients (user_id, numero_telephone, nom, prenom, solde) 
+SELECT id, '0349876543', 'Marie', 'Martin', 30000 FROM users WHERE username = '0349876543';
+
+INSERT OR IGNORE INTO users (username, password, email, role) 
+VALUES ('0371122334', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'paul@test.com', 'client');
+INSERT OR IGNORE INTO clients (user_id, numero_telephone, nom, prenom, solde) 
+SELECT id, '0371122334', 'Paul', 'Dubois', 75000 FROM users WHERE username = '0371122334';
+
+INSERT OR IGNORE INTO users (username, password, email, role) 
+VALUES ('0385566778', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'sophie@test.com', 'client');
+INSERT OR IGNORE INTO clients (user_id, numero_telephone, nom, prenom, solde) 
+SELECT id, '0385566778', 'Sophie', 'Lefevre', 120000 FROM users WHERE username = '0385566778';
