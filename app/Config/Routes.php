@@ -6,10 +6,10 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-
+// Page d'accueil
 $routes->get('/', 'Home::index');
 
-
+// Routes Admin (opérateur)
 $routes->group('admin', function($routes) {
     $routes->get('prefixes', 'Admin::prefixes');
     $routes->post('ajouter-prefixe', 'Admin::ajouterPrefixe');
@@ -29,19 +29,19 @@ $routes->group('admin', function($routes) {
     $routes->get('clients', 'Admin::clients');
 });
 
+// Routes Client (login public)
+$routes->get('client/login', 'Client::login');
+$routes->post('client/do-login', 'Client::doLogin');
+$routes->get('client/logout', 'Client::logout');
 
-$routes->get('client/login', 'ClientController::login');
-$routes->post('client/do-login', 'ClientController::doLogin');
-$routes->get('client/logout', 'ClientController::logout');
-
-
+// Routes Client (protégées par le filtre 'auth')
 $routes->group('client', ['filter' => 'auth'], function($routes) {
-    $routes->get('dashboard', 'ClientController::dashboard');
-    $routes->get('depot', 'ClientController::depot');
-    $routes->post('do-depot', 'ClientController::doDepot');
-    $routes->get('retrait', 'ClientController::retrait');
-    $routes->post('do-retrait', 'ClientController::doRetrait');
-    $routes->get('transfert', 'ClientController::transfert');
-    $routes->post('do-transfert', 'ClientController::doTransfert');
-    $routes->get('historique', 'ClientController::historique');
+    $routes->get('dashboard', 'Client::dashboard');
+    $routes->get('depot', 'Client::depot');
+    $routes->post('do-depot', 'Client::doDepot');
+    $routes->get('retrait', 'Client::retrait');
+    $routes->post('do-retrait', 'Client::doRetrait');
+    $routes->get('transfert', 'Client::transfert');
+    $routes->post('do-transfert', 'Client::doTransfert');
+    $routes->get('historique', 'Client::historique');
 });
