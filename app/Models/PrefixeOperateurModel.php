@@ -14,5 +14,5 @@ class PrefixeOperateurModel extends Model
     protected $allowedFields    = ['prefixe', 'description'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
-    protected $updatedField     = null;
+    protected $updatedField     = '';
 }

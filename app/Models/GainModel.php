@@ -14,7 +14,7 @@ class GainModel extends Model
     protected $allowedFields    = ['type_operation_id', 'montant_total_frais', 'periode_debut', 'periode_fin'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
-    protected $updatedField     = null;
+    protected $updatedField     = '';
 
     public function getGainsWithType()
     {

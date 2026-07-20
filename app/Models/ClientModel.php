@@ -14,7 +14,7 @@ class ClientModel extends Model
     protected $allowedFields    = ['user_id', 'numero_telephone', 'nom', 'prenom', 'solde', 'statut'];
     protected $useTimestamps    = true;
     protected $createdField     = 'date_creation';
-    protected $updatedField     = null;
+    protected $updatedField     = '';
 
     public function findByNumero($numero)
     {

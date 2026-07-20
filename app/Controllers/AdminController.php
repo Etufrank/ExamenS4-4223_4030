@@ -43,7 +43,7 @@ class AdminController extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $data = [
@@ -51,20 +51,12 @@ class AdminController extends BaseController
             'description' => trim($this->request->getPost('description')),
         ];
 
-        if (empty($data['prefixe'])) {
-            return redirect()->back()->withInput()->with('error', 'Le préfixe est requis.');
-        }
-
         try {
             if ($this->prefixeModel->insert($data) === false) {
                 return redirect()->back()->withInput()->with('error', 'Erreur insertion : ' . implode(', ', $this->prefixeModel->errors()));
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion préfixe : ' . $e->getMessage());
-            $lastQuery = $this->prefixeModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
@@ -93,7 +85,7 @@ class AdminController extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $data = [
@@ -102,20 +94,12 @@ class AdminController extends BaseController
             'description' => trim($this->request->getPost('description')),
         ];
 
-        if (empty($data['nom']) || empty($data['code'])) {
-            return redirect()->back()->withInput()->with('error', 'Le nom et le code sont requis.');
-        }
-
         try {
             if ($this->typeModel->insert($data) === false) {
                 return redirect()->back()->withInput()->with('error', 'Erreur insertion type : ' . implode(', ', $this->typeModel->errors()));
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion type : ' . $e->getMessage());
-            $lastQuery = $this->typeModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
@@ -147,7 +131,7 @@ class AdminController extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $min = (float) $this->request->getPost('montant_min');
@@ -164,20 +148,12 @@ class AdminController extends BaseController
             'frais_pourcentage' => (float) ($this->request->getPost('frais_pourcentage') ?: 0),
         ];
 
-        if ($data['type_operation_id'] <= 0) {
-            return redirect()->back()->withInput()->with('error', 'Veuillez sélectionner un type d\'opération valide.');
-        }
-
         try {
             if ($this->baremeModel->insert($data) === false) {
                 return redirect()->back()->withInput()->with('error', 'Erreur insertion barème : ' . implode(', ', $this->baremeModel->errors()));
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion barème : ' . $e->getMessage());
-            $lastQuery = $this->baremeModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 
@@ -206,7 +182,7 @@ class AdminController extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $min = (float) $this->request->getPost('montant_min');
@@ -228,10 +204,6 @@ class AdminController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur mise à jour barème : ' . $e->getMessage());
-            $lastQuery = $this->baremeModel->db->getLastQuery();
-            if ($lastQuery) {
-                log_message('error', 'Dernière requête : ' . $lastQuery);
-            }
             return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
         }
 

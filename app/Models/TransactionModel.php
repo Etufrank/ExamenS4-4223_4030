@@ -14,7 +14,7 @@ class TransactionModel extends Model
     protected $allowedFields    = ['reference', 'type_operation_id', 'client_id', 'montant', 'frais_appliques', 'montant_total', 'sens', 'statut', 'description'];
     protected $useTimestamps    = true;
     protected $createdField     = 'date_transaction';
-    protected $updatedField     = null;
+    protected $updatedField     = '';
 
     public function generateReference()
     {

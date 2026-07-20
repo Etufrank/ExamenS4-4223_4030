@@ -14,7 +14,7 @@ class TypeOperationModel extends Model
     protected $allowedFields    = ['nom', 'code', 'description'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
-    protected $updatedField     = null;
+    protected $updatedField     = '';
 
     public function getTypeByCode($code)
     {

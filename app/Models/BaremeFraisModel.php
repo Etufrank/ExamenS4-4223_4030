@@ -18,6 +18,7 @@ class BaremeFraisModel extends Model
 
     public function getBaremeByTypeAndMontant($typeId, $montant)
     {
+        $montant = (float) $montant;
         return $this->where('type_operation_id', $typeId)
                     ->where('montant_min <=', $montant)
                     ->where('montant_max >=', $montant)

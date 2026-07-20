@@ -14,7 +14,7 @@ class UserModel extends Model
     protected $allowedFields    = ['username', 'password', 'email', 'role'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
-    protected $updatedField     = null;
+    protected $updatedField     = '';
 
     public function findByUsername($username)
     {
