@@ -44,12 +44,36 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Veuillez entrer votre numéro.');
         }
 
-        $client = $this->clientModel->findByNumero($numero);
-        if (!$client) {
-            return redirect()->back()->withInput()->with('error', 'Numéro inconnu.');
+        $user = $this->userModel->where('username', $numero)->first();
+
+        if ($user && $user['role'] === 'admin') {
+        } else {
+            if (substr($numero, 0, 3) !== '032') {
+                return redirect()->back()->withInput()->with('error', 'Seuls les numéros 032 peuvent se connecter.');
+            }
         }
 
-        $user = $this->userModel->find($client['user_id']);
+        $client = $this->clientModel->findByNumero($numero);
+
+        if (!$client) {
+            $userId = $this->userModel->insert([
+                'username'   => $numero,
+                'password'   => password_hash($numero, PASSWORD_DEFAULT),
+                'role'       => 'client',
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+            $clientId = $this->clientModel->insert([
+                'user_id'          => $userId,
+                'numero_telephone' => $numero,
+                'nom'              => 'Client',
+                'prenom'           => 'Auto',
+                'solde'            => 0,
+                'date_creation'    => date('Y-m-d H:i:s'),
+                'statut'           => 'actif',
+            ]);
+            $client = $this->clientModel->find($clientId);
+        }
+
         session()->set([
             'client_id'        => $client['id'],
             'numero_telephone' => $client['numero_telephone'],
@@ -114,10 +138,13 @@ class ClientController extends BaseController
             'client_id'          => $clientId,
             'montant'            => $montant,
             'frais_appliques'    => $frais,
+            'frais_inclus'       => 0,
             'montant_total'      => $montantTotal,
             'sens'               => 'credit',
             'statut'             => 'effectuee',
             'description'        => 'Dépôt de ' . number_format($montant, 2) . ' Ar',
+            'destinataire_original' => null,
+            'est_inter_operateur' => 0,
         ];
 
         try {
@@ -179,10 +206,13 @@ class ClientController extends BaseController
             'client_id'          => $clientId,
             'montant'            => $montant,
             'frais_appliques'    => $frais,
+            'frais_inclus'       => 0,
             'montant_total'      => $montantTotal,
             'sens'               => 'debit',
             'statut'             => 'effectuee',
             'description'        => 'Retrait de ' . number_format($montant, 2) . ' Ar',
+            'destinataire_original' => null,
+            'est_inter_operateur' => 0,
         ];
 
         try {
@@ -221,26 +251,51 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Veuillez entrer au moins un destinataire.');
         }
 
-        $destinataires = array_filter(array_map('trim', explode("\n", $destinatairesRaw)));
-        if (empty($destinataires)) {
-            return redirect()->back()->withInput()->with('error', 'Aucun destinataire valide.');
-        }
-
         $client = $this->clientModel->find($clientId);
         if (!$client) {
             return redirect()->to('/client/login')->with('error', 'Client introuvable.');
         }
 
+        $user = $this->userModel->find($client['user_id']);
+        $estAdmin = ($user && $user['role'] === 'admin');
+        if (!$estAdmin && substr($client['numero_telephone'], 0, 3) !== '032') {
+            return redirect()->back()->withInput()->with('error', 'Seuls les numéros 032 peuvent effectuer des transferts.');
+        }
+
+        $destinataires = array_filter(array_map('trim', explode("\n", $destinatairesRaw)));
+        if (empty($destinataires)) {
+            return redirect()->back()->withInput()->with('error', 'Aucun destinataire valide.');
+        }
+
         $destinatairesClients = [];
+        $estInterOperateur = 0;
+
         foreach ($destinataires as $dest) {
             if ($dest === $client['numero_telephone']) {
                 return redirect()->back()->withInput()->with('error', 'Vous ne pouvez pas vous transférer à vous-même.');
             }
-            $destClient = $this->clientModel->findByNumero($dest);
-            if (!$destClient) {
-                return redirect()->back()->withInput()->with('error', 'Destinataire introuvable : ' . $dest);
+
+            $prefixeDest = substr($dest, 0, 3);
+            $prefixeInfo = $this->prefixeModel->where('prefixe', $prefixeDest)->first();
+            if (!$prefixeInfo) {
+                return redirect()->back()->withInput()->with('error', 'Préfixe invalide : ' . $prefixeDest);
             }
-            $destinatairesClients[] = $destClient;
+
+            if ($prefixeDest !== '032') {
+                $estInterOperateur = 1;
+            }
+
+            $destClient = $this->clientModel->findByNumero($dest);
+            if ($destClient) {
+                $destinatairesClients[] = $destClient;
+            } else {
+                $destinatairesClients[] = [
+                    'id' => null,
+                    'numero_telephone' => $dest,
+                    'exists' => false,
+                    'solde' => 0
+                ];
+            }
         }
 
         $nbDestinataires = count($destinatairesClients);
@@ -254,10 +309,6 @@ class ClientController extends BaseController
         if (!$type) {
             return redirect()->back()->withInput()->with('error', 'Type "transfert" introuvable.');
         }
-
-        $premierPrefixe = substr($destinatairesClients[0]['numero_telephone'], 0, 3);
-        $prefixeInfo = $this->prefixeModel->where('prefixe', $premierPrefixe)->first();
-        $estInterOperateur = ($prefixeInfo && $prefixeInfo['est_autre_operateur'] == 1) ? 1 : 0;
 
         $bareme = $this->baremeModel->getBaremeByTypeAndMontant($type['id'], $montantParDestinataire);
         if (!$bareme) {
@@ -273,7 +324,10 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($totalADebiter, 2) . ' Ar');
         }
 
-        foreach ($destinatairesClients as $index => $destClient) {
+        foreach ($destinatairesClients as $index => $destData) {
+            $isExisting = isset($destData['exists']) ? $destData['exists'] : true;
+            $destNum = $isExisting ? $destData['numero_telephone'] : $destData['numero_telephone'];
+
             $referenceExp = $this->transactionModel->generateReference();
             $this->transactionModel->insert([
                 'reference' => $referenceExp,
@@ -285,29 +339,32 @@ class ClientController extends BaseController
                 'montant_total' => $montantDebite,
                 'sens' => 'debit',
                 'statut' => 'effectuee',
-                'description' => 'Transfert multiple ' . ($index + 1) . '/' . $nbDestinataires . ' vers ' . $destClient['numero_telephone'],
-                'destinataire_original' => $destClient['numero_telephone'],
+                'description' => 'Transfert multiple ' . ($index + 1) . '/' . $nbDestinataires . ' vers ' . $destNum,
+                'destinataire_original' => $destNum,
                 'est_inter_operateur' => $estInterOperateur,
             ]);
 
-            $referenceDest = $this->transactionModel->generateReference();
-            $this->transactionModel->insert([
-                'reference' => $referenceDest,
-                'type_operation_id' => $type['id'],
-                'client_id' => $destClient['id'],
-                'montant' => $montantEnvoye,
-                'frais_appliques' => 0,
-                'frais_inclus' => 0,
-                'montant_total' => $montantEnvoye,
-                'sens' => 'credit',
-                'statut' => 'effectuee',
-                'description' => 'Réception de transfert multiple de ' . $client['numero_telephone'],
-                'est_inter_operateur' => 0,
-            ]);
+            if ($isExisting) {
+                $referenceDest = $this->transactionModel->generateReference();
+                $this->transactionModel->insert([
+                    'reference' => $referenceDest,
+                    'type_operation_id' => $type['id'],
+                    'client_id' => $destData['id'],
+                    'montant' => $montantEnvoye,
+                    'frais_appliques' => 0,
+                    'frais_inclus' => 0,
+                    'montant_total' => $montantEnvoye,
+                    'sens' => 'credit',
+                    'statut' => 'effectuee',
+                    'description' => 'Réception de transfert multiple de ' . $client['numero_telephone'],
+                    'destinataire_original' => null,
+                    'est_inter_operateur' => 0,
+                ]);
 
-            $this->clientModel->update($destClient['id'], [
-                'solde' => $destClient['solde'] + $montantEnvoye
-            ]);
+                $this->clientModel->update($destData['id'], [
+                    'solde' => $destData['solde'] + $montantEnvoye
+                ]);
+            }
         }
 
         $this->clientModel->update($clientId, [
