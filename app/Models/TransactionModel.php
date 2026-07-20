@@ -42,4 +42,33 @@ class TransactionModel extends Model
                     ->where('statut', 'effectuee')
                     ->first();
     }
+    public function getGainsByType($typeId, $debut, $fin, $estInterOperateur = null)
+{
+    $builder = $this->select('SUM(frais_appliques) as total_frais')
+                    ->where('type_operation_id', $typeId)
+                    ->where('date_transaction >=', $debut)
+                    ->where('date_transaction <=', $fin)
+                    ->where('statut', 'effectuee');
+    
+    if ($estInterOperateur !== null) {
+        $builder->where('est_inter_operateur', $estInterOperateur);
+    }
+    
+    return $builder->first()['total_frais'] ?? 0;
 }
+
+public function getMontantsParOperateur($debut, $fin)
+{
+    return $this->select('prefixes_operateur.prefixe, SUM(transactions.montant) as total_montant')
+                ->join('clients', 'clients.id = transactions.client_id')
+                ->join('prefixes_operateur', 'substr(clients.numero_telephone, 1, 3) = prefixes_operateur.prefixe', 'left')
+                ->where('transactions.date_transaction >=', $debut)
+                ->where('transactions.date_transaction <=', $fin)
+                ->where('transactions.statut', 'effectuee')
+                ->where('transactions.sens', 'debit')
+                ->groupBy('prefixes_operateur.prefixe')
+                ->findAll();
+}
+
+}
+

@@ -15,4 +15,21 @@ class PrefixeOperateurModel extends Model
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
     protected $updatedField     = '';
+
+   
+    public function getAutresOperateurs()
+    {
+        return $this->where('est_autre_operateur', 1)->findAll();
+    }
+
+    public function getOperateurs()
+    {
+        return $this->where('est_autre_operateur', 0)->findAll();
+    }
+
+    public function getCommissionByPrefixe($prefixe)
+    {
+        $result = $this->where('prefixe', $prefixe)->first();
+        return $result ? $result['commission_pourcentage'] : 0;
+    }
 }
