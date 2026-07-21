@@ -44,6 +44,7 @@
                                     <li><a class="dropdown-item" href="<?= base_url('admin/baremes') ?>" style="color: var(--text-light);">Barèmes de frais</a></li>
                                     <li><a class="dropdown-item" href="<?= base_url('admin/gains') ?>" style="color: var(--text-light);">Situation des gains</a></li>
                                     <li><a class="dropdown-item" href="<?= base_url('admin/clients') ?>" style="color: var(--text-light);">Comptes clients</a></li>
+                                    <li><a class="dropdown-item text-danger" href="<?= base_url('admin/reset-database') ?>" style="color: var(--text-danger);">Réinitialiser la base</a></li>
                                 </ul>
                             </li>
                         <?php endif; ?>
