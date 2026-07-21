@@ -14,7 +14,7 @@ class PrefixeOperateurModel extends Model
     protected $allowedFields    = ['prefixe', 'description', 'est_autre_operateur', 'commission_pourcentage'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
-    protected $updatedField     = 'updated_at';
+    protected $updatedField     = '';
 
     public function getAutresOperateurs()
     {
