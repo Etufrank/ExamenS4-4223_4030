@@ -1,0 +1,48 @@
+# ===================================
+# IGNORE TOUT SAUF LE CODE SOURCE
+# ===================================
+
+# Tout ce qui est dans writable/ (logs, cache, session, uploads, debugbar, base de données)
+writable/*
+!writable/index.html
+!writable/.htaccess
+
+# Dépendances (vendor) - si déjà versionné, vous pouvez supprimer cette ligne
+vendor/
+
+# Fichiers système
+system/
+
+# Fichiers d'environnement (contenant des identifiants)
+.env
+.env.*
+
+# Fichiers de configuration locaux
+app/Config/Boot/development.php
+app/Config/Boot/production.php
+app/Config/Boot/testing.php
+
+# Composer
+composer.lock
+composer.phar
+
+# Documentation
+user_guide_src/
+*.md
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporaires
+*.tmp
+*.log
+*.bak
+*.db
+*.txt
+*~
