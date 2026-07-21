@@ -73,6 +73,9 @@ class AdminController extends BaseController
         if (!$prefixe) {
             return redirect()->to('/admin/prefixes')->with('error', 'Préfixe introuvable.');
         }
+        if ($prefixe['prefixe'] === '032') {
+            return redirect()->to('/admin/prefixes')->with('error', 'Le préfixe 032 est le réseau principal et ne peut pas être modifié.');
+        }
         $data['prefixe'] = $prefixe;
         $data['title'] = 'Modifier un préfixe';
         return view('admin/prefixe_edit', $data);
@@ -83,6 +86,9 @@ class AdminController extends BaseController
         $prefixe = $this->prefixeModel->find($id);
         if (!$prefixe) {
             return redirect()->to('/admin/prefixes')->with('error', 'Préfixe introuvable.');
+        }
+        if ($prefixe['prefixe'] === '032') {
+            return redirect()->to('/admin/prefixes')->with('error', 'Le préfixe 032 est le réseau principal et ne peut pas être modifié.');
         }
 
         $rules = [
@@ -123,6 +129,10 @@ class AdminController extends BaseController
 
     public function supprimerPrefixe($id)
     {
+        $prefixe = $this->prefixeModel->find($id);
+        if ($prefixe && $prefixe['prefixe'] === '032') {
+            return redirect()->to('/admin/prefixes')->with('error', 'Le préfixe 032 est le réseau principal et ne peut pas être supprimé.');
+        }
         $this->prefixeModel->delete($id);
         return redirect()->to('/admin/prefixes')->with('success', 'Préfixe supprimé');
     }

@@ -26,7 +26,7 @@
                     <label for="commission_pourcentage" class="form-label">Commission (%)</label>
                     <input type="number" name="commission_pourcentage" id="commission_pourcentage" class="form-control form-control-custom" 
                            step="0.01" value="0">
-                    <small class="text-muted">Pourcentage de commission à reverser à cet opérateur (uniquement pour les autres opérateurs).</small>
+                    <small class="text-muted">Pourcentage à reverser à cet opérateur (si autre opérateur).</small>
                 </div>
                 <button type="submit" class="btn btn-primary-custom">Ajouter</button>
             </form>
@@ -39,14 +39,26 @@
                 <?php foreach ($prefixes as $p): ?>
                     <li class="list-group-item d-flex justify-content-between align-items-center" 
                         style="background:var(--bg-card);color:var(--text-light);border-color:var(--border-dark);">
-                        <?= esc($p['prefixe']) ?> - <?= esc($p['description']) ?>
                         <div>
-                            <a href="<?= base_url('admin/modifier-prefixe/' . $p['id']) ?>" 
-                               class="btn btn-sm btn-outline-custom">Modifier</a>
-                            <a href="<?= base_url('admin/supprimer-prefixe/' . $p['id']) ?>" 
-                               class="btn btn-sm btn-danger" 
-                               onclick="return confirm('Confirmer la suppression ?')">✕</a>
+                            <?= esc($p['prefixe']) ?> - <?= esc($p['description']) ?>
+                            <?php if ($p['est_autre_operateur']): ?>
+                                <span class="badge bg-warning text-dark">Autre opérateur</span>
+                            <?php endif; ?>
+                            <?php if ($p['commission_pourcentage'] > 0): ?>
+                                <span class="badge bg-info text-dark">Commission <?= number_format($p['commission_pourcentage'], 2) ?>%</span>
+                            <?php endif; ?>
                         </div>
+                        <span>
+                            <?php if ($p['prefixe'] !== '032'): ?>
+                                <a href="<?= base_url('admin/modifier-prefixe/' . $p['id']) ?>" 
+                                   class="btn btn-sm btn-outline-custom me-1">Modifier</a>
+                                <a href="<?= base_url('admin/supprimer-prefixe/' . $p['id']) ?>" 
+                                   class="btn btn-danger btn-sm" 
+                                   onclick="return confirm('Confirmer la suppression ?')">✕</a>
+                            <?php else: ?>
+                                <span class="text-muted">(Principal)</span>
+                            <?php endif; ?>
+                        </span>
                     </li>
                 <?php endforeach; ?>
             </ul>
