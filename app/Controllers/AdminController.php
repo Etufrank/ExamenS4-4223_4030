@@ -8,6 +8,7 @@ use App\Models\BaremeFraisModel;
 use App\Models\ClientModel;
 use App\Models\TransactionModel;
 use App\Models\GainModel;
+use App\Models\UserModel;
 
 class AdminController extends BaseController
 {
@@ -17,6 +18,7 @@ class AdminController extends BaseController
     protected $clientModel;
     protected $transactionModel;
     protected $gainModel;
+    protected $userModel;
 
     public function __construct()
     {
@@ -26,6 +28,7 @@ class AdminController extends BaseController
         $this->clientModel = new ClientModel();
         $this->transactionModel = new TransactionModel();
         $this->gainModel = new GainModel();
+        $this->userModel = new UserModel();
     }
 
     public function prefixes()
@@ -351,5 +354,32 @@ class AdminController extends BaseController
         $data['clients'] = $this->clientModel->findAll();
         $data['title']   = 'Situation des comptes clients';
         return view('admin/clients', $data);
+    }
+
+    public function resetDatabasePage()
+    {
+        $data['title'] = 'Réinitialisation de la base';
+        return view('admin/reset_database', $data);
+    }
+
+    public function resetDatabase()
+    {
+        $confirm = $this->request->getPost('confirm');
+        if (strtoupper($confirm) !== 'RESET') {
+            return redirect()->back()->with('error', 'Confirmation incorrecte. Veuillez taper RESET.');
+        }
+
+        $this->db->table('transactions')->truncate();
+        $this->db->table('gains')->truncate();
+        $this->db->table('envois_multiples')->truncate();
+
+        $adminUsers = $this->userModel->whereIn('username', ['0320408683', '0320000001'])->findAll();
+        $adminIds = array_column($adminUsers, 'id');
+
+        $this->db->table('clients')->whereNotIn('user_id', $adminIds)->delete();
+        $this->db->table('users')->whereNotIn('id', $adminIds)->delete();
+        $this->db->table('clients')->whereIn('user_id', $adminIds)->update(['solde' => 0]);
+
+        return redirect()->to('/admin/prefixes')->with('success', 'Base de données réinitialisée avec succès.');
     }
 }
