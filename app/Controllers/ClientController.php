@@ -8,6 +8,7 @@ use App\Models\TypeOperationModel;
 use App\Models\BaremeFraisModel;
 use App\Models\UserModel;
 use App\Models\PrefixeOperateurModel;
+use App\Models\PromotionModel;
 
 class ClientController extends BaseController
 {
@@ -17,6 +18,7 @@ class ClientController extends BaseController
     protected $baremeModel;
     protected $userModel;
     protected $prefixeModel;
+    protected $promotionModel;
 
     public function __construct()
     {
@@ -26,6 +28,7 @@ class ClientController extends BaseController
         $this->baremeModel = new BaremeFraisModel();
         $this->userModel = new UserModel();
         $this->prefixeModel = new PrefixeOperateurModel();
+        $this->promotionModel = new PromotionModel();
     }
 
     public function login()
@@ -70,6 +73,8 @@ class ClientController extends BaseController
                 'solde'            => 0,
                 'date_creation'    => date('Y-m-d H:i:s'),
                 'statut'           => 'actif',
+                'epargne_pourcentage' => 0,
+                'solde_epargne'    => 0,
             ]);
             $client = $this->clientModel->find($clientId);
         }
@@ -99,7 +104,10 @@ class ClientController extends BaseController
             return redirect()->to('/client/login')->with('error', 'Veuillez vous reconnecter.');
         }
         $data['client'] = $client;
+        $data['solde_epargne'] = $client['solde_epargne'] ?? 0;
+        $data['epargne_pourcentage'] = $client['epargne_pourcentage'] ?? 0;
         $data['title'] = 'Mon compte';
+        $data['transactions'] = $this->transactionModel->getTransactionsByClient($clientId, 5);
         return view('client/dashboard', $data);
     }
 
@@ -132,6 +140,10 @@ class ClientController extends BaseController
         $frais = $bareme ? ($bareme['frais_fixe'] + ($montant * $bareme['frais_pourcentage'] / 100)) : 0;
         $montantTotal = $montant - $frais;
 
+        $epargnePct = $client['epargne_pourcentage'] ?? 0;
+        $montantEpargne = $montantTotal * ($epargnePct / 100);
+        $montantDisponible = $montantTotal - $montantEpargne;
+
         $data = [
             'reference'          => $this->transactionModel->generateReference(),
             'type_operation_id'  => $type['id'],
@@ -157,10 +169,11 @@ class ClientController extends BaseController
         }
 
         $this->clientModel->update($clientId, [
-            'solde' => $client['solde'] + $montantTotal
+            'solde' => $client['solde'] + $montantDisponible,
+            'solde_epargne' => $client['solde_epargne'] + $montantEpargne
         ]);
 
-        return redirect()->to('/client/dashboard')->with('success', 'Dépôt effectué ! Vous avez reçu ' . number_format($montantTotal, 2) . ' Ar');
+        return redirect()->to('/client/dashboard')->with('success', 'Dépôt effectué ! Solde disponible: ' . number_format($montantDisponible, 2) . ' Ar, Épargne: ' . number_format($montantEpargne, 2) . ' Ar');
     }
 
     public function retrait()
@@ -293,7 +306,9 @@ class ClientController extends BaseController
                     'id' => null,
                     'numero_telephone' => $dest,
                     'exists' => false,
-                    'solde' => 0
+                    'solde' => 0,
+                    'epargne_pourcentage' => 0,
+                    'solde_epargne' => 0
                 ];
             }
         }
@@ -315,18 +330,27 @@ class ClientController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Aucun barème trouvé pour ce montant.');
         }
 
-        $fraisParDestinataire = $bareme['frais_fixe'] + ($montantParDestinataire * $bareme['frais_pourcentage'] / 100);
-        $montantEnvoye = $fraisInclus ? $montantParDestinataire - $fraisParDestinataire : $montantParDestinataire;
-        $montantDebite = $fraisInclus ? $montantParDestinataire : $montantParDestinataire + $fraisParDestinataire;
-
-        $totalADebiter = $montantDebite * $nbDestinataires;
-        if ($client['solde'] < $totalADebiter) {
-            return redirect()->back()->withInput()->with('error', 'Solde insuffisant. Solde: ' . number_format($client['solde'], 2) . ' Ar, Total à débiter: ' . number_format($totalADebiter, 2) . ' Ar');
-        }
+        $fraisBase = $bareme['frais_fixe'] + ($montantParDestinataire * $bareme['frais_pourcentage'] / 100);
 
         foreach ($destinatairesClients as $index => $destData) {
             $isExisting = isset($destData['exists']) ? $destData['exists'] : true;
             $destNum = $isExisting ? $destData['numero_telephone'] : $destData['numero_telephone'];
+
+            $prefixeDest = substr($destNum, 0, 3);
+            $estInterOp = ($prefixeDest !== '032') ? 1 : 0;
+
+            $fraisReel = $fraisBase;
+            if ($estInterOp === 0) {
+                $promotion = $this->promotionModel->getActivePromotion($type['id'], '032');
+                if ($promotion) {
+                    $reduction = (float) $promotion['reduction_pourcentage'];
+                    $fraisReel = $fraisReel * (1 - ($reduction / 100));
+                    $fraisReel = round($fraisReel, 2);
+                }
+            }
+
+            $montantNetEnvoye = $fraisInclus ? $montantParDestinataire - $fraisReel : $montantParDestinataire;
+            $montantDebiteFinal = $fraisInclus ? $montantParDestinataire : $montantParDestinataire + $fraisReel;
 
             $referenceExp = $this->transactionModel->generateReference();
             $this->transactionModel->insert([
@@ -334,26 +358,31 @@ class ClientController extends BaseController
                 'type_operation_id' => $type['id'],
                 'client_id' => $clientId,
                 'montant' => $montantParDestinataire,
-                'frais_appliques' => $fraisParDestinataire,
+                'frais_appliques' => $fraisReel,
                 'frais_inclus' => $fraisInclus ? 1 : 0,
-                'montant_total' => $montantDebite,
+                'montant_total' => $montantDebiteFinal,
                 'sens' => 'debit',
                 'statut' => 'effectuee',
                 'description' => 'Transfert multiple ' . ($index + 1) . '/' . $nbDestinataires . ' vers ' . $destNum,
                 'destinataire_original' => $destNum,
-                'est_inter_operateur' => $estInterOperateur,
+                'est_inter_operateur' => $estInterOp,
             ]);
 
             if ($isExisting) {
+                $destClient = $this->clientModel->find($destData['id']);
+                $epargnePctDest = $destClient['epargne_pourcentage'] ?? 0;
+                $montantEpargneDest = $montantNetEnvoye * ($epargnePctDest / 100);
+                $montantDisponibleDest = $montantNetEnvoye - $montantEpargneDest;
+
                 $referenceDest = $this->transactionModel->generateReference();
                 $this->transactionModel->insert([
                     'reference' => $referenceDest,
                     'type_operation_id' => $type['id'],
                     'client_id' => $destData['id'],
-                    'montant' => $montantEnvoye,
+                    'montant' => $montantNetEnvoye,
                     'frais_appliques' => 0,
                     'frais_inclus' => 0,
-                    'montant_total' => $montantEnvoye,
+                    'montant_total' => $montantNetEnvoye,
                     'sens' => 'credit',
                     'statut' => 'effectuee',
                     'description' => 'Réception de transfert multiple de ' . $client['numero_telephone'],
@@ -362,11 +391,13 @@ class ClientController extends BaseController
                 ]);
 
                 $this->clientModel->update($destData['id'], [
-                    'solde' => $destData['solde'] + $montantEnvoye
+                    'solde' => $destClient['solde'] + $montantDisponibleDest,
+                    'solde_epargne' => $destClient['solde_epargne'] + $montantEpargneDest
                 ]);
             }
         }
 
+        $totalADebiter = $montantDebiteFinal * $nbDestinataires;
         $this->clientModel->update($clientId, [
             'solde' => $client['solde'] - $totalADebiter
         ]);
@@ -381,5 +412,19 @@ class ClientController extends BaseController
         $data['transactions'] = $transactions;
         $data['title'] = 'Mon historique';
         return view('client/historique', $data);
+    }
+
+    public function setEpargne()
+    {
+        $clientId = session()->get('client_id');
+        $pourcentage = (float) $this->request->getPost('epargne_pourcentage');
+
+        if ($pourcentage < 0 || $pourcentage > 100) {
+            return redirect()->back()->with('error', 'Le pourcentage doit être compris entre 0 et 100.');
+        }
+
+        $this->clientModel->update($clientId, ['epargne_pourcentage' => $pourcentage]);
+
+        return redirect()->to('/client/dashboard')->with('success', 'Pourcentage d\'épargne mis à jour.');
     }
 }

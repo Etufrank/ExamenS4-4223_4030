@@ -49,6 +49,51 @@
                 <div class="value" style="font-size: 16px;"><?= date('d/m/Y', strtotime($client['date_creation'])) ?></div>
             </div>
             <?php endif; ?>
+            <div class="stat-mini">
+                <div class="label">💰 Solde épargne</div>
+                <div class="value" style="font-size: 18px; color: #ffc107;">
+                    <?= number_format($solde_epargne ?? 0, 0, ',', ' ') ?> <span style="font-size: 14px;">Ar</span>
+                </div>
+            </div>
+            <div class="stat-mini">
+                <div class="label">📊 Taux d'épargne</div>
+                <div class="value" style="font-size: 16px;">
+                    <?= number_format($epargne_pourcentage ?? 0, 2) ?>%
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-glass mt-4 p-4">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <h6 class="mb-1">
+                <i class="bi bi-piggy-bank me-2 text-warning"></i>Modifier le pourcentage d'épargne
+            </h6>
+            <small class="text-muted">
+                Le pourcentage choisi sera automatiquement prélevé sur chaque dépôt et réception de transfert.
+            </small>
+        </div>
+        <div class="col-lg-6">
+            <form action="<?= base_url('client/set-epargne') ?>" method="post" class="row g-2">
+                <?= csrf_field() ?>
+                <div class="col-8">
+                    <div class="input-group">
+                        <input type="number" name="epargne_pourcentage" 
+                               class="form-control form-control-custom" 
+                               step="0.01" min="0" max="100" 
+                               value="<?= $epargne_pourcentage ?? 0 ?>" 
+                               placeholder="Ex: 10" required>
+                        <span class="input-group-text bg-dark text-light border-0">%</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <button type="submit" class="btn btn-primary-custom w-100">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -59,33 +104,35 @@
         <h6>Transactions récentes</h6>
         <a href="<?= base_url('client/historique') ?>">Voir tout <i class="bi bi-arrow-right"></i></a>
     </div>
-    <table class="table table-custom mb-0">
-        <thead>
-            <tr>
-                <th></th>
-                <th>Détails</th>
-                <th>Date</th>
-                <th class="text-end">Montant</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach (array_slice($transactions, 0, 5) as $t): ?>
-            <?php $estEntrant = in_array($t['type'], ['depot', 'transfert_recu']); ?>
-            <tr>
-                <td>
-                    <div class="tx-icon <?= $estEntrant ? 'in' : 'out' ?>">
-                        <i class="bi bi-arrow-<?= $estEntrant ? 'down-left' : 'up-right' ?>"></i>
-                    </div>
-                </td>
-                <td><?= esc($t['description'] ?? ucfirst($t['type'])) ?></td>
-                <td class="text-muted"><?= date('d/m/Y H:i', strtotime($t['date'])) ?></td>
-                <td class="text-end fw-semibold <?= $estEntrant ? 'text-success' : 'text-danger' ?>">
-                    <?= $estEntrant ? '+' : '-' ?><?= number_format($t['montant'], 0, ',', ' ') ?> Ar
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Détails</th>
+                    <th>Date</th>
+                    <th class="text-end">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (array_slice($transactions, 0, 5) as $t): ?>
+                <?php $estEntrant = $t['sens'] === 'credit'; ?>
+                <tr>
+                    <td>
+                        <div class="tx-icon <?= $estEntrant ? 'in' : 'out' ?>">
+                            <i class="bi bi-arrow-<?= $estEntrant ? 'down-left' : 'up-right' ?>"></i>
+                        </div>
+                    </td>
+                    <td><?= esc($t['description'] ?? ucfirst($t['type_nom'] ?? '')) ?></td>
+                    <td class="text-muted"><?= date('d/m/Y H:i', strtotime($t['date_transaction'])) ?></td>
+                    <td class="text-end fw-semibold <?= $estEntrant ? 'text-success' : 'text-danger' ?>">
+                        <?= $estEntrant ? '+' : '-' ?><?= number_format($t['montant_total'], 0, ',', ' ') ?> Ar
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 <?php endif; ?>
 

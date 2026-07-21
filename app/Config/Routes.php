@@ -31,6 +31,12 @@ $routes->group('admin', function($routes) {
     $routes->get('gains', 'AdminController::gains');
     $routes->get('clients', 'AdminController::clients');
 
+    $routes->get('promotions', 'AdminController::promotions');
+    $routes->post('ajouter-promotion', 'AdminController::ajouterPromotion');
+    $routes->get('modifier-promotion/(:num)', 'AdminController::modifierPromotion/$1');
+    $routes->post('mettre-a-jour-promotion/(:num)', 'AdminController::mettreAJourPromotion/$1');
+    $routes->get('supprimer-promotion/(:num)', 'AdminController::supprimerPromotion/$1');
+
     $routes->get('reset-database', 'AdminController::resetDatabasePage');
     $routes->post('reset-database', 'AdminController::resetDatabase');
 });
@@ -44,4 +50,5 @@ $routes->group('client', ['filter' => 'auth'], function($routes) {
     $routes->get('transfert', 'ClientController::transfert');
     $routes->post('do-transfert', 'ClientController::doTransfert');
     $routes->get('historique', 'ClientController::historique');
+    $routes->post('set-epargne', 'ClientController::setEpargne');
 });

@@ -9,6 +9,7 @@ use App\Models\ClientModel;
 use App\Models\TransactionModel;
 use App\Models\GainModel;
 use App\Models\UserModel;
+use App\Models\PromotionModel;
 
 class AdminController extends BaseController
 {
@@ -19,6 +20,7 @@ class AdminController extends BaseController
     protected $transactionModel;
     protected $gainModel;
     protected $userModel;
+    protected $promotionModel;
 
     public function __construct()
     {
@@ -29,6 +31,7 @@ class AdminController extends BaseController
         $this->transactionModel = new TransactionModel();
         $this->gainModel = new GainModel();
         $this->userModel = new UserModel();
+        $this->promotionModel = new PromotionModel();
     }
 
     public function prefixes()
@@ -64,10 +67,10 @@ class AdminController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion préfixe : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
         }
 
-        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe ajouté avec succès.');
+        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe ajouté.');
     }
 
     public function modifierPrefixe($id)
@@ -119,15 +122,15 @@ class AdminController extends BaseController
         try {
             if ($this->prefixeModel->update($id, $data) === false) {
                 $errors = $this->prefixeModel->errors();
-                $errorMsg = !empty($errors) ? implode(', ', $errors) : 'Erreur inconnue lors de la mise à jour.';
+                $errorMsg = !empty($errors) ? implode(', ', $errors) : 'Erreur inconnue.';
                 return redirect()->back()->withInput()->with('error', $errorMsg);
             }
         } catch (\Exception $e) {
-            log_message('error', 'Erreur mise à jour préfixe (ID ' . $id . ') : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique : ' . $e->getMessage());
+            log_message('error', 'Erreur mise à jour préfixe : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
         }
 
-        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe mis à jour avec succès.');
+        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe mis à jour.');
     }
 
     public function supprimerPrefixe($id)
@@ -171,10 +174,10 @@ class AdminController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion type : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
         }
 
-        return redirect()->to('/admin/types-operations')->with('success', 'Type ajouté avec succès.');
+        return redirect()->to('/admin/types-operations')->with('success', 'Type ajouté.');
     }
 
     public function supprimerType($id)
@@ -225,10 +228,10 @@ class AdminController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur insertion barème : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
         }
 
-        return redirect()->to('/admin/baremes')->with('success', 'Barème ajouté avec succès.');
+        return redirect()->to('/admin/baremes')->with('success', 'Barème ajouté.');
     }
 
     public function modifierBareme($id)
@@ -275,10 +278,10 @@ class AdminController extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Erreur mise à jour barème : ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
         }
 
-        return redirect()->to('/admin/baremes')->with('success', 'Barème mis à jour avec succès.');
+        return redirect()->to('/admin/baremes')->with('success', 'Barème mis à jour.');
     }
 
     public function supprimerBareme($id)
@@ -356,6 +359,95 @@ class AdminController extends BaseController
         return view('admin/clients', $data);
     }
 
+    public function promotions()
+    {
+        $data['promotions'] = $this->promotionModel->getPromotionsWithType();
+        $data['types']      = $this->typeModel->findAll();
+        $data['title']      = 'Gestion des promotions';
+        return view('admin/promotions', $data);
+    }
+
+    public function ajouterPromotion()
+    {
+        $rules = [
+            'type_operation_id'    => 'required|is_natural_no_zero',
+            'reduction_pourcentage'=> 'required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]',
+            'date_debut'           => 'required|valid_date',
+            'date_fin'             => 'required|valid_date|after[date_debut]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        $data = [
+            'type_operation_id'    => (int) $this->request->getPost('type_operation_id'),
+            'operateur_prefixe'    => '032',
+            'reduction_pourcentage'=> (float) $this->request->getPost('reduction_pourcentage'),
+            'date_debut'           => $this->request->getPost('date_debut'),
+            'date_fin'             => $this->request->getPost('date_fin'),
+        ];
+
+        try {
+            if ($this->promotionModel->insert($data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur insertion : ' . implode(', ', $this->promotionModel->errors()));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur insertion promotion : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+        }
+
+        return redirect()->to('/admin/promotions')->with('success', 'Promotion ajoutée.');
+    }
+
+    public function modifierPromotion($id)
+    {
+        $promotion = $this->promotionModel->find($id);
+        if (!$promotion) {
+            return redirect()->to('/admin/promotions')->with('error', 'Promotion introuvable.');
+        }
+        $data['promotion'] = $promotion;
+        $data['types']     = $this->typeModel->findAll();
+        $data['title']     = 'Modifier une promotion';
+        return view('admin/promotion_edit', $data);
+    }
+
+    public function mettreAJourPromotion($id)
+    {
+        $rules = [
+            'reduction_pourcentage'=> 'required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]',
+            'date_debut'           => 'required|valid_date',
+            'date_fin'             => 'required|valid_date|after[date_debut]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        $data = [
+            'reduction_pourcentage'=> (float) $this->request->getPost('reduction_pourcentage'),
+            'date_debut'           => $this->request->getPost('date_debut'),
+            'date_fin'             => $this->request->getPost('date_fin'),
+        ];
+
+        try {
+            if ($this->promotionModel->update($id, $data) === false) {
+                return redirect()->back()->withInput()->with('error', 'Erreur mise à jour.');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur mise à jour promotion : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique.');
+        }
+
+        return redirect()->to('/admin/promotions')->with('success', 'Promotion mise à jour.');
+    }
+
+    public function supprimerPromotion($id)
+    {
+        $this->promotionModel->delete($id);
+        return redirect()->to('/admin/promotions')->with('success', 'Promotion supprimée.');
+    }
+
     public function resetDatabasePage()
     {
         $data['title'] = 'Réinitialisation de la base';
@@ -366,7 +458,7 @@ class AdminController extends BaseController
     {
         $confirm = $this->request->getPost('confirm');
         if (strtoupper($confirm) !== 'RESET') {
-            return redirect()->back()->with('error', 'Confirmation incorrecte. Veuillez taper RESET.');
+            return redirect()->back()->with('error', 'Confirmation incorrecte.');
         }
 
         $this->db->table('transactions')->truncate();
@@ -378,8 +470,8 @@ class AdminController extends BaseController
 
         $this->db->table('clients')->whereNotIn('user_id', $adminIds)->delete();
         $this->db->table('users')->whereNotIn('id', $adminIds)->delete();
-        $this->db->table('clients')->whereIn('user_id', $adminIds)->update(['solde' => 0]);
+        $this->db->table('clients')->whereIn('user_id', $adminIds)->update(['solde' => 0, 'solde_epargne' => 0]);
 
-        return redirect()->to('/admin/prefixes')->with('success', 'Base de données réinitialisée avec succès.');
+        return redirect()->to('/admin/prefixes')->with('success', 'Base réinitialisée.');
     }
 }
