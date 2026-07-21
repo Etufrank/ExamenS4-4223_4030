@@ -40,6 +40,8 @@ class AdminController extends BaseController
         $rules = [
             'prefixe' => 'required|is_unique[prefixes_operateur.prefixe]|min_length[2]|max_length[10]',
             'description' => 'permit_empty|max_length[255]',
+            'est_autre_operateur' => 'permit_empty|integer',
+            'commission_pourcentage' => 'permit_empty|numeric|greater_than_equal_to[0]',
         ];
 
         if (!$this->validate($rules)) {
@@ -65,53 +67,66 @@ class AdminController extends BaseController
         return redirect()->to('/admin/prefixes')->with('success', 'Préfixe ajouté avec succès.');
     }
 
+    public function modifierPrefixe($id)
+    {
+        $prefixe = $this->prefixeModel->find($id);
+        if (!$prefixe) {
+            return redirect()->to('/admin/prefixes')->with('error', 'Préfixe introuvable.');
+        }
+        $data['prefixe'] = $prefixe;
+        $data['title'] = 'Modifier un préfixe';
+        return view('admin/prefixe_edit', $data);
+    }
+
+    public function mettreAJourPrefixe($id)
+    {
+        $prefixe = $this->prefixeModel->find($id);
+        if (!$prefixe) {
+            return redirect()->to('/admin/prefixes')->with('error', 'Préfixe introuvable.');
+        }
+
+        $rules = [
+            'prefixe' => 'required|min_length[2]|max_length[10]',
+            'description' => 'permit_empty|max_length[255]',
+            'est_autre_operateur' => 'permit_empty|integer',
+            'commission_pourcentage' => 'permit_empty|numeric|greater_than_equal_to[0]',
+        ];
+
+        if ($this->request->getPost('prefixe') !== $prefixe['prefixe']) {
+            $rules['prefixe'] .= '|is_unique[prefixes_operateur.prefixe]';
+        }
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        $data = [
+            'prefixe'    => trim($this->request->getPost('prefixe')),
+            'description' => trim($this->request->getPost('description')),
+            'est_autre_operateur' => (int) $this->request->getPost('est_autre_operateur'),
+            'commission_pourcentage' => (float) ($this->request->getPost('commission_pourcentage') ?: 0),
+        ];
+
+        try {
+            if ($this->prefixeModel->update($id, $data) === false) {
+                $errors = $this->prefixeModel->errors();
+                $errorMsg = !empty($errors) ? implode(', ', $errors) : 'Erreur inconnue lors de la mise à jour.';
+                return redirect()->back()->withInput()->with('error', $errorMsg);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erreur mise à jour préfixe (ID ' . $id . ') : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur technique : ' . $e->getMessage());
+        }
+
+        return redirect()->to('/admin/prefixes')->with('success', 'Préfixe mis à jour avec succès.');
+    }
+
     public function supprimerPrefixe($id)
     {
         $this->prefixeModel->delete($id);
         return redirect()->to('/admin/prefixes')->with('success', 'Préfixe supprimé');
     }
-    // Ajouter après la méthode supprimerPrefixe()
 
-public function modifierPrefixe($id)
-{
-    $prefixe = $this->prefixeModel->find($id);
-    if (!$prefixe) {
-        return redirect()->to('/admin/prefixes')->with('error', 'Préfixe introuvable.');
-    }
-    $data['prefixe'] = $prefixe;
-    $data['title'] = 'Modifier un préfixe';
-    return view('admin/prefixe_edit', $data);
-}
-
-public function mettreAJourPrefixe($id)
-{
-    $rules = [
-        'description' => 'permit_empty|max_length[255]',
-        'est_autre_operateur' => 'permit_empty|integer|in_list[0,1]',
-        'commission_pourcentage' => 'permit_empty|numeric|greater_than_equal_to[0]',
-    ];
-
-    if (!$this->validate($rules)) {
-        return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
-    }
-
-    $data = [
-        'description' => trim($this->request->getPost('description')),
-        'est_autre_operateur' => (int) $this->request->getPost('est_autre_operateur'),
-        'commission_pourcentage' => (float) ($this->request->getPost('commission_pourcentage') ?: 0),
-    ];
-
-    try {
-        if ($this->prefixeModel->update($id, $data) === false) {
-            return redirect()->back()->withInput()->with('error', 'Erreur mise à jour : ' . implode(', ', $this->prefixeModel->errors()));
-        }
-    } catch (\Exception $e) {
-        log_message('error', 'Erreur mise à jour préfixe : ' . $e->getMessage());
-        return redirect()->back()->withInput()->with('error', 'Erreur technique. Voir les logs.');
-    }
-
-    return redirect()->to('/admin/prefixes')->with('success', 'Préfixe mis à jour avec succès.');
-}
     public function typesOperations()
     {
         $data['types'] = $this->typeModel->findAll();
@@ -205,7 +220,7 @@ public function mettreAJourPrefixe($id)
 
     public function modifierBareme($id)
     {
-        $bareme = $this->baremeModel->getBaremeWithType($id);
+        $bareme = $this->baremeModel->find($id);
         if (!$bareme) {
             return redirect()->to('/admin/baremes')->with('error', 'Barème introuvable');
         }
@@ -304,6 +319,7 @@ public function mettreAJourPrefixe($id)
         }
 
         $montantsOperateurs = $this->transactionModel->getMontantsParOperateur($periodeDebut, $periodeFin);
+
         foreach ($montantsOperateurs as &$m) {
             $commission = ($m['total_montant'] ?? 0) * (($m['commission_pourcentage'] ?? 0) / 100);
             $m['commission'] = $commission;
